@@ -10,7 +10,10 @@ export default async function AppLayout({
 }) {
   const { user, profile } = await getCurrentUserAndProfile();
   if (!user) redirect("/login");
-  if (!profile) redirect("/onboarding");
+  // Accounts are provisioned with a profile row up front (no self-serve
+  // signup for this 2-person tool) — a missing profile means a login
+  // slipped through without one, so send back to sign-in rather than 404.
+  if (!profile) redirect("/login");
 
   const navItems = [
     { href: "/leads", label: profile.role === "founder" ? "All Leads" : "My Leads" },
