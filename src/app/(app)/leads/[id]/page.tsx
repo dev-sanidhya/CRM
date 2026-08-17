@@ -4,6 +4,7 @@ import { getCurrentUserAndProfile } from "@/lib/profile";
 import { StagePill } from "@/components/StagePill";
 import { VoiceLogger } from "@/components/VoiceLogger";
 import { STAGES, STAGE_LABELS, type Stage } from "@/lib/stages";
+import { formatDateTime } from "@/lib/format";
 import { addActivity, changeStage, reassignLead, addReminder } from "./actions";
 
 const ACTIVITY_TYPE_LABELS: Record<string, string> = {
@@ -161,12 +162,7 @@ export default async function LeadDetailPage({
           <ul className="mb-4 space-y-1.5">
             {reminders.map((r) => (
               <li key={r.id} className="text-sm text-neutral-700">
-                <span className="font-medium">
-                  {new Date(r.due_at).toLocaleString(undefined, {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
-                </span>
+                <span className="font-medium">{formatDateTime(r.due_at)}</span>
                 {r.note && <span className="text-neutral-500"> — {r.note}</span>}
                 {r.status !== "pending" && (
                   <span className="ml-1.5 text-xs text-neutral-400">({r.status})</span>
@@ -241,10 +237,7 @@ export default async function LeadDetailPage({
               <p className="text-xs text-neutral-500">
                 {ACTIVITY_TYPE_LABELS[a.type] ?? a.type} ·{" "}
                 {(a.profiles as unknown as { name: string } | null)?.name ?? "—"} ·{" "}
-                {new Date(a.created_at).toLocaleString(undefined, {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                })}
+                {formatDateTime(a.created_at)}
               </p>
               <p className="text-sm text-neutral-800">{a.summary}</p>
             </li>

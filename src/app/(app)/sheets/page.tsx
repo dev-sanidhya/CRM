@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUserAndProfile } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
+import { formatDateTime } from "@/lib/format";
 import { PullForm } from "./PullForm";
 
 export default async function SheetsPage() {
@@ -38,10 +39,7 @@ export default async function SheetsPage() {
               >
                 <p className="truncate font-medium text-neutral-800">{imp.sheet_url}</p>
                 <p className="text-xs text-neutral-500">
-                  {new Date(imp.imported_at).toLocaleString(undefined, {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}{" "}
+                  {formatDateTime(imp.imported_at)}{" "}
                   · {(imp.sheet_layouts as unknown as { label: string } | null)?.label} ·{" "}
                   {imp.new_lead_count} new, {imp.updated_lead_count} updated
                 </p>

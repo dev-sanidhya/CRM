@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { markDone, snoozeOneDay } from "@/app/(app)/reminders/actions";
+import { formatDateTime } from "@/lib/format";
 
 type Reminder = {
   id: string;
@@ -31,10 +32,7 @@ export function ReminderRow({
           <p className="truncate text-sm text-neutral-500">{reminder.note}</p>
         )}
         <p className="text-xs text-neutral-400">
-          {new Date(reminder.due_at).toLocaleString(undefined, {
-            dateStyle: "medium",
-            timeStyle: "short",
-          })}
+          {formatDateTime(reminder.due_at)}
           {showAssignee && reminder.profiles?.name && ` · ${reminder.profiles.name}`}
         </p>
       </div>
