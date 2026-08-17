@@ -11,6 +11,7 @@ type Props = {
   layoutLabel: string;
   newCount: number;
   updatedCount: number;
+  currentCount: number;
   canDelete: boolean;
 };
 
@@ -21,6 +22,7 @@ export function SheetImportRow({
   layoutLabel,
   newCount,
   updatedCount,
+  currentCount,
   canDelete,
 }: Props) {
   const [confirming, setConfirming] = useState(false);
@@ -43,7 +45,12 @@ export function SheetImportRow({
         <div className="min-w-0">
           <p className="truncate font-medium text-zinc-800">{sheetUrl}</p>
           <p className="text-xs text-zinc-500">
-            {formatDateTime(importedAt)} · {layoutLabel} · {newCount} new, {updatedCount} updated
+            {formatDateTime(importedAt)} · {layoutLabel} · {newCount} new, {updatedCount} updated at the time
+          </p>
+          <p className="mt-0.5 text-xs">
+            <span className={currentCount > 0 ? "font-medium text-zinc-700" : "text-zinc-400"}>
+              {currentCount} lead{currentCount === 1 ? "" : "s"} currently on file from this sheet
+            </span>
           </p>
         </div>
         {canDelete && !confirming && (
@@ -58,8 +65,9 @@ export function SheetImportRow({
       {confirming && (
         <div className="mt-2 flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2">
           <p className="flex-1 text-xs text-red-700">
-            Delete all leads pulled from this sheet, along with their activity
-            and reminders? This can&apos;t be undone.
+            {currentCount > 0
+              ? `Delete all ${currentCount} lead${currentCount === 1 ? "" : "s"} currently from this sheet, along with their activity and reminders? This can't be undone.`
+              : "This sheet has no leads currently attached to it (they've likely been re-pulled into a newer import). Delete this record anyway?"}
           </p>
           <button
             onClick={() => setConfirming(false)}

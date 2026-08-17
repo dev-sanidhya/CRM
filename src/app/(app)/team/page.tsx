@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUserAndProfile } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
@@ -26,9 +27,11 @@ export default async function TeamPage() {
     .order("name");
 
   const callerIds = (callers ?? []).map((c) => c.id);
-  const [totals, funnel] = await Promise.all([
+  const [totals, funnel, { count: sheetImportCount }, { count: totalLeadCount }] = await Promise.all([
     getTeamTotals(supabase, callerIds),
     getStageFunnel(supabase),
+    supabase.from("sheet_imports").select("*", { count: "exact", head: true }),
+    supabase.from("leads").select("*", { count: "exact", head: true }),
   ]);
   const funnelTotal = funnel.reduce((sum, f) => sum + f.count, 0);
 
@@ -72,6 +75,27 @@ export default async function TeamPage() {
           </div>
         </div>
       )}
+
+      <div className="mb-8">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          Data sources
+        </p>
+        <Link
+          href="/sheets"
+          className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-accent/40"
+        >
+          <div>
+            <p className="text-sm font-medium text-zinc-800">
+              {totalLeadCount ?? 0} lead{totalLeadCount === 1 ? "" : "s"} from {sheetImportCount ?? 0} sheet
+              pull{sheetImportCount === 1 ? "" : "s"}
+            </p>
+            <p className="text-xs text-zinc-500">
+              See every sheet ever pulled in and wipe any of them
+            </p>
+          </div>
+          <span className="text-sm font-medium text-accent">Manage →</span>
+        </Link>
+      </div>
 
       {(!callers || callers.length === 0) && (
         <p className="text-sm text-zinc-500">No caller accounts yet.</p>

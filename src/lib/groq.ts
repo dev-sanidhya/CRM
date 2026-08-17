@@ -18,6 +18,98 @@ const STAGE_VALUES = [
   "lost",
 ];
 
+export type InferredMapping = {
+  business_name: string | null;
+  phone: string | null;
+  city: string | null;
+  website: string | null;
+  score: string | null;
+  status: string | null;
+  follow_up_date: string | null;
+};
+
+// Format-agnostic sheet mapping: when a pulled sheet's headers don't match
+// any layout we've seen before, ask Groq to map them to our fixed schema
+// instead of hard-failing. The result gets cached as a new sheet_layouts row
+// keyed by the exact header signature, so the same format is instant and
+// free on every future pull — this call only happens once per new format.
+export async function inferSheetMapping(
+  headers: string[],
+  sampleRow: Record<string, string>,
+): Promise<InferredMapping | null> {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) return null;
+
+  const systemPrompt = `You map spreadsheet column headers to a fixed CRM schema for a cold-call lead sheet. You will be given the exact list of column headers and one example data row.
+
+Return strict JSON, using ONLY header names that appear EXACTLY in the given list (or null if no column fits):
+{
+  "business_name": header name for the company/business name, or null,
+  "phone": header name for the phone number, or null,
+  "city": header name for city/location, or null,
+  "website": header name for a website URL, or null,
+  "score": header name for a numeric priority/lead score, or null,
+  "status": header name for call outcome/disposition/status, or null,
+  "follow_up_date": header name for a follow-up/callback date, or null
+}
+
+business_name and phone are required — give your best guess for these even if uncertain. Do not invent header names that are not in the given list.`;
+
+  const userPrompt = `Headers: ${JSON.stringify(headers)}
+
+Example row:
+${JSON.stringify(sampleRow, null, 2)}`;
+
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "openai/gpt-oss-20b",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.1,
+    }),
+  });
+
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) return null;
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(content);
+  } catch {
+    return null;
+  }
+
+  const headerSet = new Set(headers);
+  const pick = (key: string): string | null => {
+    const v = parsed[key];
+    return typeof v === "string" && headerSet.has(v) ? v : null;
+  };
+
+  const mapping: InferredMapping = {
+    business_name: pick("business_name"),
+    phone: pick("phone"),
+    city: pick("city"),
+    website: pick("website"),
+    score: pick("score"),
+    status: pick("status"),
+    follow_up_date: pick("follow_up_date"),
+  };
+
+  if (!mapping.business_name || !mapping.phone) return null;
+  return mapping;
+}
+
 export async function extractFromTranscript(
   transcript: string,
   context: { businessName: string; city: string | null; currentStage: string },

@@ -4,6 +4,7 @@ import Papa from "papaparse";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { buildExportUrl, headerSignature, normalizePhone, parseSheetUrl } from "@/lib/sheets";
+import { inferSheetMapping } from "@/lib/groq";
 
 type ColumnMapping = {
   business_name?: string;
@@ -73,12 +74,62 @@ export async function pullSheet(_prev: PullResult | null, formData: FormData): P
   }
 
   if (!layout) {
-    return {
-      ok: false,
-      error:
-        "This sheet's columns don't match any known layout yet. It needs a one-time mapping added before it can be pulled.",
-      headers: rawRows.slice(0, 3).map((r) => r.join(" | ")),
-    };
+    // Format-agnostic fallback: no exact match against a known layout, so
+    // detect the likely header row (first row with several non-empty cells
+    // — distinguishes a real header row from a one-cell merged title row)
+    // and ask Groq to map its columns to our schema. The result is cached
+    // as a new sheet_layouts row keyed by this exact header signature, so
+    // this format is instant and free on every future pull.
+    let candidateIndex = -1;
+    for (let i = 0; i < Math.min(5, rawRows.length); i++) {
+      if (rawRows[i].filter((c) => c.trim()).length >= 3) {
+        candidateIndex = i;
+        break;
+      }
+    }
+    if (candidateIndex === -1) candidateIndex = 0;
+
+    const candidateHeaders = rawRows[candidateIndex];
+    const sampleRowRaw = rawRows[candidateIndex + 1] ?? [];
+    const sampleRow: Record<string, string> = {};
+    candidateHeaders.forEach((h, idx) => {
+      sampleRow[h] = sampleRowRaw[idx] ?? "";
+    });
+
+    const inferred = await inferSheetMapping(candidateHeaders, sampleRow);
+    if (!inferred) {
+      return {
+        ok: false,
+        error:
+          "Couldn't automatically figure out this sheet's columns. Make sure it has clear headers for at least business name and phone.",
+        headers: rawRows.slice(0, 3).map((r) => r.join(" | ")),
+      };
+    }
+
+    const signature = headerSignature(candidateHeaders);
+    const { data: savedLayout, error: saveError } = await supabase
+      .from("sheet_layouts")
+      .upsert(
+        {
+          header_signature: signature,
+          label: `Auto-detected (${candidateHeaders.slice(0, 3).join(", ")}…)`,
+          column_mapping: inferred,
+          status_map: {},
+        },
+        { onConflict: "header_signature" },
+      )
+      .select("id, label, column_mapping, status_map")
+      .single();
+
+    if (saveError || !savedLayout) {
+      return {
+        ok: false,
+        error: `Detected a column mapping but couldn't save it: ${saveError?.message ?? "unknown error"}`,
+      };
+    }
+
+    headerRowIndex = candidateIndex;
+    layout = savedLayout;
   }
 
   const headers = rawRows[headerRowIndex];
