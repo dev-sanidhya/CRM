@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAndProfile } from "@/lib/profile";
 import { StagePill } from "@/components/StagePill";
+import { VoiceLogger } from "@/components/VoiceLogger";
 import { STAGES, STAGE_LABELS, type Stage } from "@/lib/stages";
 import { addActivity, changeStage, reassignLead, addReminder } from "./actions";
 
@@ -202,6 +203,9 @@ export default async function LeadDetailPage({
         <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500">
           Activity
         </p>
+
+        <VoiceLogger leadId={id} />
+
         <form action={addActivity.bind(null, id)} className="mb-5 space-y-2">
           <div className="flex gap-2">
             <select
