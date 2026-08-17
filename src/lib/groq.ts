@@ -1,5 +1,6 @@
 export type VoiceExtraction = {
   summary: string;
+  call_answered: boolean | null;
   suggested_stage: string | null;
   follow_up_date: string | null; // ISO datetime
   follow_up_note: string | null;
@@ -33,6 +34,7 @@ export async function extractFromTranscript(
 Return strict JSON matching this shape, nothing else:
 {
   "summary": string (1-2 clean sentences summarizing what happened on the call),
+  "call_answered": true if the lead picked up and there was a conversation, false if it explicitly says no answer/voicemail/didn't pick up, null if unclear from the transcript,
   "suggested_stage": one of [${STAGE_VALUES.join(", ")}] or null (only set this if the transcript clearly implies the lead's stage changed; otherwise null),
   "follow_up_date": ISO 8601 datetime string or null (only set if a specific future date/day was mentioned for a callback; default to 10:00 local time if no time was given),
   "follow_up_note": short string describing what the follow-up is about, or null (only set alongside follow_up_date),
@@ -76,6 +78,7 @@ ${transcript}
   const parsed = JSON.parse(content);
   return {
     summary: String(parsed.summary ?? "").trim(),
+    call_answered: typeof parsed.call_answered === "boolean" ? parsed.call_answered : null,
     suggested_stage: STAGE_VALUES.includes(parsed.suggested_stage) ? parsed.suggested_stage : null,
     follow_up_date: parsed.follow_up_date ?? null,
     follow_up_note: parsed.follow_up_note ?? null,

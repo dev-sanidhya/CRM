@@ -37,6 +37,7 @@ export async function saveVoiceLog(
   input: {
     transcript: string;
     summary: string;
+    answered: boolean | null;
     applyStage: string | null;
     followUpDate: string | null;
     followUpNote: string | null;
@@ -55,10 +56,19 @@ export async function saveVoiceLog(
     summary: input.summary,
     source: "voice",
     raw_transcript: input.transcript,
+    answered: input.answered,
   });
 
   if (input.applyStage && STAGES.includes(input.applyStage as (typeof STAGES)[number])) {
     await supabase.from("leads").update({ stage: input.applyStage }).eq("id", leadId);
+    await supabase.from("activities").insert({
+      lead_id: leadId,
+      actor: user.id,
+      type: "status_change",
+      summary: `Stage changed to ${input.applyStage.replace(/_/g, " ")}`,
+      source: "voice",
+      to_stage: input.applyStage,
+    });
   }
 
   if (input.followUpDate) {
@@ -80,4 +90,5 @@ export async function saveVoiceLog(
   revalidatePath(`/leads/${leadId}`);
   revalidatePath("/leads");
   revalidatePath("/reminders");
+  revalidatePath("/team");
 }

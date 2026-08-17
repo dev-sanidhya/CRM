@@ -19,7 +19,10 @@ export default async function AppLayout({
     { href: "/leads", label: profile.role === "founder" ? "All Leads" : "My Leads" },
     { href: "/reminders", label: "Reminders" },
     ...(profile.role === "founder"
-      ? [{ href: "/sheets", label: "Pull Sheet" }]
+      ? [
+          { href: "/sheets", label: "Pull Sheet" },
+          { href: "/team", label: "Team" },
+        ]
       : []),
   ];
 

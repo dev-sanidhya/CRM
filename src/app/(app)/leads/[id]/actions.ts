@@ -9,6 +9,9 @@ export async function addActivity(leadId: string, formData: FormData) {
   const summary = String(formData.get("summary") ?? "").trim();
   if (!summary) return;
 
+  const answeredRaw = String(formData.get("answered") ?? "");
+  const answered = type === "call" && answeredRaw ? answeredRaw === "true" : null;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -21,9 +24,11 @@ export async function addActivity(leadId: string, formData: FormData) {
     type,
     summary,
     source: "typed",
+    answered,
   });
 
   revalidatePath(`/leads/${leadId}`);
+  revalidatePath("/team");
 }
 
 export async function changeStage(leadId: string, formData: FormData) {
@@ -43,10 +48,12 @@ export async function changeStage(leadId: string, formData: FormData) {
     type: "status_change",
     summary: `Stage changed to ${stage.replace(/_/g, " ")}`,
     source: "typed",
+    to_stage: stage,
   });
 
   revalidatePath(`/leads/${leadId}`);
   revalidatePath("/leads");
+  revalidatePath("/team");
 }
 
 export async function reassignLead(leadId: string, formData: FormData) {

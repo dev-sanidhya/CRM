@@ -3,9 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAndProfile } from "@/lib/profile";
 import { StagePill } from "@/components/StagePill";
 import { VoiceLogger } from "@/components/VoiceLogger";
+import { ActivityForm } from "@/components/ActivityForm";
 import { STAGES, STAGE_LABELS, type Stage } from "@/lib/stages";
 import { formatDateTime } from "@/lib/format";
-import { addActivity, changeStage, reassignLead, addReminder } from "./actions";
+import { changeStage, reassignLead, addReminder } from "./actions";
 
 const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   call: "Call",
@@ -34,7 +35,7 @@ export default async function LeadDetailPage({
 
   const { data: activities } = await supabase
     .from("activities")
-    .select("id, type, summary, created_at, source, profiles:actor(name)")
+    .select("id, type, summary, created_at, source, answered, profiles:actor(name)")
     .eq("lead_id", id)
     .order("created_at", { ascending: false });
 
@@ -202,41 +203,21 @@ export default async function LeadDetailPage({
 
         <VoiceLogger leadId={id} />
 
-        <form action={addActivity.bind(null, id)} className="mb-5 space-y-2">
-          <div className="flex gap-2">
-            <select
-              name="type"
-              defaultValue="call"
-              className="rounded-lg border border-neutral-300 px-2.5 py-1.5 text-xs text-neutral-900 outline-none focus:border-neutral-900"
-            >
-              <option value="call">Call</option>
-              <option value="email">Email</option>
-              <option value="linkedin">LinkedIn</option>
-              <option value="note">Note</option>
-            </select>
-          </div>
-          <textarea
-            name="summary"
-            required
-            placeholder="What happened?"
-            rows={2}
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-900"
-          />
-          <button
-            type="submit"
-            className="rounded-lg bg-neutral-900 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-neutral-800"
-          >
-            Log activity
-          </button>
-        </form>
+        <ActivityForm leadId={id} />
 
         <ol className="space-y-4 border-l border-neutral-200 pl-4">
           {activities?.map((a) => (
             <li key={a.id} className="relative">
               <span className="absolute -left-[21px] top-1 h-2 w-2 rounded-full bg-neutral-300" />
               <p className="text-xs text-neutral-500">
-                {ACTIVITY_TYPE_LABELS[a.type] ?? a.type} ·{" "}
-                {(a.profiles as unknown as { name: string } | null)?.name ?? "—"} ·{" "}
+                {ACTIVITY_TYPE_LABELS[a.type] ?? a.type}
+                {a.answered !== null && (
+                  <span className={a.answered ? "text-emerald-600" : "text-red-600"}>
+                    {" "}
+                    · {a.answered ? "Answered" : "No answer"}
+                  </span>
+                )}{" "}
+                · {(a.profiles as unknown as { name: string } | null)?.name ?? "—"} ·{" "}
                 {formatDateTime(a.created_at)}
               </p>
               <p className="text-sm text-neutral-800">{a.summary}</p>

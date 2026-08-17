@@ -3,10 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-export async function markDone(reminderId: string) {
+export async function markDone(reminderId: string, resolutionNote: string) {
   const supabase = await createClient();
-  await supabase.from("reminders").update({ status: "done" }).eq("id", reminderId);
+  await supabase
+    .from("reminders")
+    .update({
+      status: "done",
+      completed_at: new Date().toISOString(),
+      resolution_note: resolutionNote.trim() || null,
+    })
+    .eq("id", reminderId);
   revalidatePath("/reminders");
+  revalidatePath("/team");
 }
 
 export async function snoozeOneDay(reminderId: string) {

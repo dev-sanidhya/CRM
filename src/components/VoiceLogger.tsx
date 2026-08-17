@@ -83,6 +83,7 @@ export function VoiceLogger({ leadId }: { leadId: string }) {
     await saveVoiceLog(leadId, {
       transcript,
       summary: draft.summary,
+      answered: draft.call_answered,
       applyStage: applyStage ? draft.suggested_stage : null,
       followUpDate: applyReminder ? draft.follow_up_date : null,
       followUpNote: applyReminder ? draft.follow_up_note : null,
@@ -178,6 +179,24 @@ export function VoiceLogger({ leadId }: { leadId: string }) {
           rows={2}
           className="mb-3 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-900"
         />
+
+        <div className="mb-3 flex items-center gap-2 text-sm text-neutral-700">
+          <span className="text-xs text-neutral-500">Call outcome:</span>
+          <select
+            value={draft.call_answered === null ? "" : String(draft.call_answered)}
+            onChange={(e) =>
+              setDraft({
+                ...draft,
+                call_answered: e.target.value === "" ? null : e.target.value === "true",
+              })
+            }
+            className="rounded-lg border border-neutral-300 px-2 py-1 text-xs outline-none focus:border-neutral-900"
+          >
+            <option value="">Unclear</option>
+            <option value="true">Answered</option>
+            <option value="false">No answer</option>
+          </select>
+        </div>
 
         {draft.suggested_stage && (
           <label className="mb-2 flex items-center gap-2 text-sm text-neutral-700">
