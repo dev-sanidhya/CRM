@@ -11,7 +11,7 @@ export function PullForm() {
 
   return (
     <div>
-      <form action={formAction} className="mb-6 flex gap-2">
+      <form action={formAction} className="mb-6 flex flex-col gap-2 sm:flex-row">
         <input
           type="url"
           name="url"

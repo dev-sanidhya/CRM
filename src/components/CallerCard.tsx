@@ -26,7 +26,7 @@ export async function CallerCard({
       <h2 className="mb-4 text-lg font-bold tracking-tight text-zinc-900">{callerName}</h2>
 
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Today</p>
-      <div className="mb-5 grid grid-cols-4 gap-2">
+      <div className="mb-5 grid grid-cols-2 sm:grid-cols-4 gap-2">
         <StatBlock label="Calls dialled" value={stats.today.calls} />
         <StatBlock label="No answer" value={stats.today.noAnswer} />
         <StatBlock label="Demos booked" value={stats.today.demosBooked} />
@@ -34,7 +34,7 @@ export async function CallerCard({
       </div>
 
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">All time</p>
-      <div className="mb-5 grid grid-cols-4 gap-2">
+      <div className="mb-5 grid grid-cols-2 sm:grid-cols-4 gap-2">
         <StatBlock label="Calls dialled" value={stats.allTime.calls} />
         <StatBlock label="No answer" value={stats.allTime.noAnswer} />
         <StatBlock label="Demos booked" value={stats.allTime.demosBooked} />

@@ -53,9 +53,9 @@ export default async function LeadsPage({
     <div>
       {stats && <CallerStatsWidget stats={stats} />}
 
-      <div className="mb-6 flex items-center justify-between gap-4">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-zinc-900">
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900">
             {profile?.role === "founder" ? "All Leads" : "My Leads"}
           </h1>
           <p className="text-sm text-zinc-500">
@@ -66,58 +66,86 @@ export default async function LeadsPage({
         <LeadSearch />
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-        {!leads || leads.length === 0 ? (
-          <p className="p-10 text-center text-sm text-zinc-500">
-            {q ? "No leads match that search." : "No leads yet. Pull a sheet to get started."}
-          </p>
-        ) : (
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
-              <tr>
-                <th className="px-5 py-3 font-semibold">Business</th>
-                <th className="px-5 py-3 font-semibold">City</th>
-                <th className="px-5 py-3 font-semibold">Stage</th>
-                {profile?.role === "founder" && (
-                  <th className="px-5 py-3 font-semibold">Assigned to</th>
-                )}
-                <th className="px-5 py-3 font-semibold">Phone</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {leads.map((lead) => (
-                <tr key={lead.id} className="transition hover:bg-zinc-50">
-                  <td className="px-5 py-3.5">
-                    <Link
-                      href={`/leads/${lead.id}`}
-                      className="font-medium text-zinc-900 hover:text-accent"
-                    >
-                      {lead.business_name}
-                    </Link>
-                  </td>
-                  <td className="px-5 py-3.5 text-zinc-600">{lead.city ?? "—"}</td>
-                  <td className="px-5 py-3.5">
-                    <StagePill stage={lead.stage as Stage} />
-                  </td>
+      {!leads || leads.length === 0 ? (
+        <div className="rounded-2xl border border-zinc-200 bg-white p-10 text-center text-sm text-zinc-500 shadow-sm">
+          {q ? "No leads match that search." : "No leads yet. Pull a sheet to get started."}
+        </div>
+      ) : (
+        <>
+          {/* Mobile: stacked cards */}
+          <div className="space-y-2 md:hidden">
+            {leads.map((lead) => (
+              <div
+                key={lead.id}
+                className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
+              >
+                <Link href={`/leads/${lead.id}`} className="mb-1.5 flex items-start justify-between gap-2">
+                  <span className="font-medium text-zinc-900">{lead.business_name}</span>
+                  <StagePill stage={lead.stage as Stage} />
+                </Link>
+                <div className="flex items-center justify-between text-xs text-zinc-500">
+                  <span>
+                    {lead.city ?? "—"}
+                    {profile?.role === "founder" &&
+                      ` · ${(lead.profiles as unknown as { name: string } | null)?.name ?? "Unassigned"}`}
+                  </span>
+                  <a href={`tel:${lead.phone}`} className="font-mono text-accent">
+                    {lead.phone}
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: table */}
+          <div className="hidden overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm md:block">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
+                <tr>
+                  <th className="px-5 py-3 font-semibold">Business</th>
+                  <th className="px-5 py-3 font-semibold">City</th>
+                  <th className="px-5 py-3 font-semibold">Stage</th>
                   {profile?.role === "founder" && (
-                    <td className="px-5 py-3.5 text-zinc-600">
-                      {(lead.profiles as unknown as { name: string } | null)?.name ?? "Unassigned"}
-                    </td>
+                    <th className="px-5 py-3 font-semibold">Assigned to</th>
                   )}
-                  <td className="px-5 py-3.5">
-                    <a
-                      href={`tel:${lead.phone}`}
-                      className="font-mono text-xs text-zinc-600 hover:text-accent"
-                    >
-                      {lead.phone}
-                    </a>
-                  </td>
+                  <th className="px-5 py-3 font-semibold">Phone</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {leads.map((lead) => (
+                  <tr key={lead.id} className="transition hover:bg-zinc-50">
+                    <td className="px-5 py-3.5">
+                      <Link
+                        href={`/leads/${lead.id}`}
+                        className="font-medium text-zinc-900 hover:text-accent"
+                      >
+                        {lead.business_name}
+                      </Link>
+                    </td>
+                    <td className="px-5 py-3.5 text-zinc-600">{lead.city ?? "—"}</td>
+                    <td className="px-5 py-3.5">
+                      <StagePill stage={lead.stage as Stage} />
+                    </td>
+                    {profile?.role === "founder" && (
+                      <td className="px-5 py-3.5 text-zinc-600">
+                        {(lead.profiles as unknown as { name: string } | null)?.name ?? "Unassigned"}
+                      </td>
+                    )}
+                    <td className="px-5 py-3.5">
+                      <a
+                        href={`tel:${lead.phone}`}
+                        className="font-mono text-xs text-zinc-600 hover:text-accent"
+                      >
+                        {lead.phone}
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
       {totalPages > 1 && (
         <div className="mt-4 flex items-center justify-center gap-2">

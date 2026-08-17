@@ -16,8 +16,8 @@ export function NavLinks({ items }: { items: { href: string; label: string }[] }
             href={item.href}
             className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
               active
-                ? "bg-accent/10 text-accent"
-                : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+                ? "bg-accent/20 text-accent-foreground"
+                : "text-sidebar-foreground/70 hover:bg-white/10 hover:text-sidebar-foreground"
             }`}
           >
             {item.label}

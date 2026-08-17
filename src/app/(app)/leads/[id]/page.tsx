@@ -57,9 +57,9 @@ export default async function LeadDetailPage({
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="mb-6 flex items-start justify-between gap-4">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
             {lead.business_name}
           </h1>
           <p className="text-sm text-zinc-500">
@@ -81,7 +81,7 @@ export default async function LeadDetailPage({
         </div>
         <a
           href={`tel:${lead.phone}`}
-          className="flex shrink-0 items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground shadow-sm shadow-accent/25 transition hover:opacity-90"
+          className="flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground shadow-sm shadow-accent/25 transition hover:opacity-90 sm:w-auto"
         >
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
             <path
@@ -95,7 +95,7 @@ export default async function LeadDetailPage({
         </a>
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
             Stage
@@ -190,7 +190,7 @@ export default async function LeadDetailPage({
         ) : (
           <p className="mb-4 text-sm text-zinc-500">No reminders set.</p>
         )}
-        <form action={addReminder.bind(null, id)} className="flex gap-2">
+        <form action={addReminder.bind(null, id)} className="flex flex-col gap-2 sm:flex-row">
           <input
             type="datetime-local"
             name="due_at"

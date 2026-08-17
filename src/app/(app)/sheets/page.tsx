@@ -19,8 +19,8 @@ export default async function SheetsPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-2 text-xl font-semibold text-neutral-900">Pull from Sheet</h1>
-      <p className="mb-6 text-sm text-neutral-500">
+      <h1 className="font-display mb-2 text-2xl font-semibold tracking-tight text-zinc-900">Pull from Sheet</h1>
+      <p className="mb-6 text-sm text-zinc-500">
         Paste the day&apos;s Google Sheet link. Leads are matched by phone number, so
         re-pulling the same sheet — or a new sheet with a repeated lead — updates
         the existing record instead of duplicating it.
@@ -30,7 +30,7 @@ export default async function SheetsPage() {
 
       {recentImports && recentImports.length > 0 && (
         <div className="mt-10">
-          <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500">
+          <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-zinc-500">
             Recent pulls
           </h2>
           <ul className="space-y-2">

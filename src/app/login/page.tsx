@@ -42,7 +42,7 @@ export default function LoginPage() {
             L
           </div>
         </div>
-        <h1 className="mb-1 text-center text-2xl font-bold tracking-tight text-zinc-900">
+        <h1 className="font-display mb-1 text-center text-3xl font-semibold tracking-tight text-zinc-900">
           Lead CRM
         </h1>
         <p className="mb-8 text-center text-sm text-zinc-500">Sign in to continue.</p>

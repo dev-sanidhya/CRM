@@ -34,12 +34,12 @@ export default async function TeamPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="mb-6 text-xl font-bold tracking-tight text-zinc-900">Team</h1>
+      <h1 className="font-display mb-6 text-2xl font-semibold tracking-tight text-zinc-900">Team</h1>
 
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
         Team totals — all time
       </p>
-      <div className="mb-8 flex gap-2.5">
+      <div className="mb-8 grid grid-cols-2 gap-2.5 sm:flex">
         <TotalBlock label="Calls dialled" value={totals.calls} />
         <TotalBlock label="No answer" value={totals.noAnswer} />
         <TotalBlock label="Demos booked" value={totals.demosBooked} />

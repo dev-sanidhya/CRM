@@ -15,7 +15,7 @@ export function CallerStatsWidget({ stats }: { stats: CallerStats }) {
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
         Your day so far
       </p>
-      <div className="flex gap-2.5">
+      <div className="grid grid-cols-2 gap-2.5 sm:flex">
         <Stat label="Calls dialled" value={stats.today.calls} />
         <Stat label="No answer" value={stats.today.noAnswer} />
         <Stat label="Demos booked" value={stats.today.demosBooked} />

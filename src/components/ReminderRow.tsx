@@ -25,7 +25,7 @@ export function ReminderRow({
 
   return (
     <li className="rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div className="min-w-0">
           <Link
             href={`/leads/${reminder.leads?.id}`}

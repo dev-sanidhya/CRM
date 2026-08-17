@@ -38,11 +38,11 @@ export function SheetImportRow({
   }
 
   return (
-    <li className="rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm shadow-sm">
+    <li className="rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate font-medium text-neutral-800">{sheetUrl}</p>
-          <p className="text-xs text-neutral-500">
+          <p className="truncate font-medium text-zinc-800">{sheetUrl}</p>
+          <p className="text-xs text-zinc-500">
             {formatDateTime(importedAt)} · {layoutLabel} · {newCount} new, {updatedCount} updated
           </p>
         </div>
@@ -63,7 +63,7 @@ export function SheetImportRow({
           </p>
           <button
             onClick={() => setConfirming(false)}
-            className="shrink-0 rounded-lg border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-100"
+            className="shrink-0 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-100"
           >
             Cancel
           </button>
