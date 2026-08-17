@@ -46,31 +46,52 @@ export async function pullSheet(_prev: PullResult | null, formData: FormData): P
   }
   const csvText = await res.text();
 
-  const parsed = Papa.parse<Record<string, string>>(csvText, {
-    header: true,
-    skipEmptyLines: true,
-  });
-  const headers = parsed.meta.fields ?? [];
-  const rows = parsed.data;
-
-  if (headers.length === 0 || rows.length === 0) {
+  // Parse without assuming row 0 is the header row — several of the daily
+  // sheets have a merged title row above the real headers (e.g. "Aperture —
+  // India Interior Designer Call Sheet | List F"). Scan the first few rows
+  // for one whose columns match a known layout signature.
+  const rawParsed = Papa.parse<string[]>(csvText, { skipEmptyLines: true });
+  const rawRows = rawParsed.data;
+  if (rawRows.length === 0) {
     return { ok: false, error: "That sheet looks empty." };
   }
 
-  const signature = headerSignature(headers);
-  const { data: layout } = await supabase
+  const { data: allLayouts } = await supabase
     .from("sheet_layouts")
-    .select("id, label, column_mapping, status_map")
-    .eq("header_signature", signature)
-    .maybeSingle();
+    .select("id, label, column_mapping, status_map, header_signature");
+
+  let headerRowIndex = -1;
+  let layout: { id: string; label: string; column_mapping: ColumnMapping; status_map: Record<string, string> } | null = null;
+  for (let i = 0; i < Math.min(5, rawRows.length); i++) {
+    const signature = headerSignature(rawRows[i]);
+    const match = allLayouts?.find((l) => l.header_signature === signature);
+    if (match) {
+      headerRowIndex = i;
+      layout = match;
+      break;
+    }
+  }
 
   if (!layout) {
     return {
       ok: false,
       error:
         "This sheet's columns don't match any known layout yet. It needs a one-time mapping added before it can be pulled.",
-      headers,
+      headers: rawRows.slice(0, 3).map((r) => r.join(" | ")),
     };
+  }
+
+  const headers = rawRows[headerRowIndex];
+  const rows: Record<string, string>[] = rawRows.slice(headerRowIndex + 1).map((r) => {
+    const obj: Record<string, string> = {};
+    headers.forEach((h, idx) => {
+      obj[h] = r[idx] ?? "";
+    });
+    return obj;
+  });
+
+  if (rows.length === 0) {
+    return { ok: false, error: "Found the header row but no data rows below it." };
   }
 
   const mapping = layout.column_mapping as ColumnMapping;
