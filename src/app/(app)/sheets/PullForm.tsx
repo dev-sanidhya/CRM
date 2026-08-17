@@ -17,12 +17,12 @@ export function PullForm() {
           name="url"
           required
           placeholder="Paste today's Google Sheet link"
-          className="flex-1 rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
+          className="flex-1 rounded-xl border border-zinc-200 px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
         />
         <button
           type="submit"
           disabled={pending}
-          className="rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:opacity-50"
+          className="rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground shadow-sm transition hover:opacity-90 disabled:opacity-50"
         >
           {pending ? "Pulling…" : "Pull"}
         </button>

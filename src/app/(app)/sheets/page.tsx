@@ -1,19 +1,21 @@
 import { redirect } from "next/navigation";
 import { getCurrentUserAndProfile } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
-import { formatDateTime } from "@/lib/format";
+import { SheetImportRow } from "@/components/SheetImportRow";
 import { PullForm } from "./PullForm";
 
 export default async function SheetsPage() {
-  const { profile } = await getCurrentUserAndProfile();
-  if (profile?.role !== "founder") redirect("/leads");
+  const { user, profile } = await getCurrentUserAndProfile();
+  if (!user) redirect("/login");
 
   const supabase = await createClient();
   const { data: recentImports } = await supabase
     .from("sheet_imports")
-    .select("id, sheet_url, imported_at, row_count, new_lead_count, updated_lead_count, sheet_layouts:layout_id(label)")
+    .select("id, sheet_url, imported_at, row_count, new_lead_count, updated_lead_count, imported_by, sheet_layouts:layout_id(label)")
     .order("imported_at", { ascending: false })
-    .limit(10);
+    .limit(15);
+
+  const isFounder = profile?.role === "founder";
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -33,17 +35,16 @@ export default async function SheetsPage() {
           </h2>
           <ul className="space-y-2">
             {recentImports.map((imp) => (
-              <li
+              <SheetImportRow
                 key={imp.id}
-                className="rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm shadow-sm"
-              >
-                <p className="truncate font-medium text-neutral-800">{imp.sheet_url}</p>
-                <p className="text-xs text-neutral-500">
-                  {formatDateTime(imp.imported_at)}{" "}
-                  · {(imp.sheet_layouts as unknown as { label: string } | null)?.label} ·{" "}
-                  {imp.new_lead_count} new, {imp.updated_lead_count} updated
-                </p>
-              </li>
+                id={imp.id}
+                sheetUrl={imp.sheet_url}
+                importedAt={imp.imported_at}
+                layoutLabel={(imp.sheet_layouts as unknown as { label: string } | null)?.label ?? "Unknown layout"}
+                newCount={imp.new_lead_count}
+                updatedCount={imp.updated_lead_count}
+                canDelete={isFounder || imp.imported_by === user.id}
+              />
             ))}
           </ul>
         </div>

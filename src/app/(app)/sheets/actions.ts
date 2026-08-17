@@ -102,9 +102,8 @@ export async function pullSheet(_prev: PullResult | null, formData: FormData): P
     ) as string[],
   );
 
-  let newCount = 0;
-  let updatedCount = 0;
   let skipped = 0;
+  const payloadRows: Record<string, unknown>[] = [];
 
   for (const row of rows) {
     const phoneRaw = mapping.phone ? row[mapping.phone] : "";
@@ -129,74 +128,69 @@ export async function pullSheet(_prev: PullResult | null, formData: FormData): P
       if (v) extraFields[h] = v;
     }
 
-    const { data: existing } = await supabase
-      .from("leads")
-      .select("id, assigned_to")
-      .eq("phone", phone)
-      .maybeSingle();
-
-    let leadId: string;
-    if (existing) {
-      await supabase
-        .from("leads")
-        .update({ business_name: businessName, city, website, score, extra_fields: extraFields })
-        .eq("id", existing.id);
-      leadId = existing.id;
-      updatedCount++;
-    } else {
-      const { data: inserted } = await supabase
-        .from("leads")
-        .insert({
-          business_name: businessName,
-          phone,
-          city,
-          website,
-          stage,
-          score,
-          extra_fields: extraFields,
-        })
-        .select("id")
-        .single();
-      leadId = inserted!.id;
-      newCount++;
-    }
-
+    let followUpDate: string | null = null;
+    let followUpNote: string | null = null;
     if (mapping.follow_up_date) {
       const rawDate = row[mapping.follow_up_date]?.trim();
       if (rawDate) {
         const parsedDate = new Date(rawDate);
         if (!isNaN(parsedDate.getTime())) {
-          await supabase.from("reminders").insert({
-            lead_id: leadId,
-            assigned_to: existing?.assigned_to ?? null,
-            due_at: parsedDate.toISOString(),
-            note: "Follow-up imported from sheet",
-            source: "sheet_import",
-          });
+          followUpDate = parsedDate.toISOString();
+          followUpNote = "Follow-up imported from sheet";
         }
       }
     }
+
+    payloadRows.push({
+      business_name: businessName,
+      phone,
+      city,
+      website,
+      stage,
+      score,
+      extra_fields: extraFields,
+      follow_up_date: followUpDate,
+      follow_up_note: followUpNote,
+    });
   }
 
-  await supabase.from("sheet_imports").insert({
-    sheet_url: url,
-    sheet_tab: gid,
-    layout_id: layout.id,
-    imported_by: user.id,
-    row_count: rows.length,
-    new_lead_count: newCount,
-    updated_lead_count: updatedCount,
+  // Single round trip: the import_leads RPC does the dedup-upsert + reminder
+  // creation + sheet_imports logging server-side (security definer), which
+  // is also what lets callers pull sheets without needing RLS visibility
+  // into every other lead for the dedup check.
+  const { data: result, error } = await supabase.rpc("import_leads", {
+    p_layout_id: layout.id,
+    p_rows: payloadRows,
+    p_sheet_url: url,
+    p_sheet_tab: gid,
   });
+
+  if (error) {
+    return { ok: false, error: `Import failed: ${error.message}` };
+  }
 
   revalidatePath("/leads");
   revalidatePath("/reminders");
+  revalidatePath("/sheets");
 
   return {
     ok: true,
-    newCount,
-    updatedCount,
+    newCount: result.new_count,
+    updatedCount: result.updated_count,
     skipped,
     total: rows.length,
     layoutLabel: layout.label,
   };
+}
+
+export async function deleteSheetImport(importId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("delete_sheet_import", { p_import_id: importId });
+
+  revalidatePath("/leads");
+  revalidatePath("/reminders");
+  revalidatePath("/sheets");
+
+  if (error) return { ok: false as const, error: error.message };
+  return { ok: true as const, deletedCount: data as number };
 }
