@@ -104,3 +104,46 @@ export async function getCallerStats(supabase: SupabaseClient, callerId: string)
     })),
   };
 }
+
+export type TeamTotals = { calls: number; noAnswer: number; demosBooked: number; followUpsDone: number };
+
+export async function getTeamTotals(supabase: SupabaseClient, callerIds: string[]): Promise<TeamTotals> {
+  if (callerIds.length === 0) return { calls: 0, noAnswer: 0, demosBooked: 0, followUpsDone: 0 };
+
+  const [calls, noAnswer, demosBooked, followUpsDone] = await Promise.all([
+    supabase.from("activities").select("*", { count: "exact", head: true }).in("actor", callerIds).eq("type", "call"),
+    supabase
+      .from("activities")
+      .select("*", { count: "exact", head: true })
+      .in("actor", callerIds)
+      .eq("type", "call")
+      .eq("answered", false),
+    supabase
+      .from("activities")
+      .select("*", { count: "exact", head: true })
+      .in("actor", callerIds)
+      .eq("type", "status_change")
+      .eq("to_stage", "meeting_booked"),
+    supabase
+      .from("reminders")
+      .select("*", { count: "exact", head: true })
+      .in("assigned_to", callerIds)
+      .eq("status", "done"),
+  ]);
+
+  return {
+    calls: calls.count ?? 0,
+    noAnswer: noAnswer.count ?? 0,
+    demosBooked: demosBooked.count ?? 0,
+    followUpsDone: followUpsDone.count ?? 0,
+  };
+}
+
+export async function getStageFunnel(supabase: SupabaseClient): Promise<{ stage: string; count: number }[]> {
+  const { data } = await supabase.from("leads").select("stage");
+  const counts = new Map<string, number>();
+  for (const row of data ?? []) {
+    counts.set(row.stage, (counts.get(row.stage) ?? 0) + 1);
+  }
+  return Array.from(counts.entries()).map(([stage, count]) => ({ stage, count }));
+}
