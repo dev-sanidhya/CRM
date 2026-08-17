@@ -1,6 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUserAndProfile } from "@/lib/profile";
+import { NavLinks } from "@/components/NavLinks";
+import { Avatar } from "@/components/Avatar";
 import { signOut } from "./actions";
 
 export default async function AppLayout({
@@ -18,42 +19,41 @@ export default async function AppLayout({
   const navItems = [
     { href: "/leads", label: profile.role === "founder" ? "All Leads" : "My Leads" },
     { href: "/reminders", label: "Reminders" },
-    ...(profile.role === "founder"
-      ? [
-          { href: "/sheets", label: "Pull Sheet" },
-          { href: "/team", label: "Team" },
-        ]
-      : []),
+    { href: "/sheets", label: "Pull Sheet" },
+    ...(profile.role === "founder" ? [{ href: "/team", label: "Team" }] : []),
   ];
 
   return (
-    <div className="flex min-h-screen bg-neutral-50">
-      <aside className="flex w-56 shrink-0 flex-col border-r border-neutral-200 bg-white px-4 py-6">
-        <div className="mb-8 px-2 text-lg font-semibold text-neutral-900">
-          Lead CRM
+    <div className="flex min-h-screen bg-background">
+      <aside className="flex w-60 shrink-0 flex-col border-r border-zinc-200 bg-white px-4 py-6">
+        <div className="mb-8 flex items-center gap-2 px-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-sm font-bold text-accent-foreground">
+            L
+          </div>
+          <span className="text-base font-bold tracking-tight text-zinc-900">Lead CRM</span>
         </div>
-        <nav className="flex flex-1 flex-col gap-1">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded-lg px-3 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="mt-6 border-t border-neutral-200 pt-4 px-2">
-          <p className="text-sm font-medium text-neutral-900">{profile.name}</p>
-          <p className="mb-3 text-xs capitalize text-neutral-500">
-            {profile.role}
-          </p>
+        <NavLinks items={navItems} />
+        <div className="mt-6 flex items-center gap-2.5 border-t border-zinc-200 pt-4 px-1">
+          <Avatar name={profile.name} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-zinc-900">{profile.name}</p>
+            <p className="text-xs capitalize text-zinc-500">{profile.role}</p>
+          </div>
           <form action={signOut}>
             <button
               type="submit"
-              className="text-xs font-medium text-neutral-500 hover:text-neutral-900"
+              aria-label="Sign out"
+              className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700"
             >
-              Sign out
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path
+                  d="M6 2H3.5A1.5 1.5 0 0 0 2 3.5v9A1.5 1.5 0 0 0 3.5 14H6M10.5 11.5 14 8m0 0-3.5-3.5M14 8H6"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </button>
           </form>
         </div>

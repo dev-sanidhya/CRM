@@ -34,9 +34,9 @@ export default async function RemindersPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-6 text-xl font-semibold text-neutral-900">Reminders</h1>
+      <h1 className="mb-6 text-xl font-semibold text-zinc-900">Reminders</h1>
       {sections.every((s) => s.items.length === 0) && (
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-zinc-500">
           Nothing pending — you&apos;re all caught up.
         </p>
       )}
@@ -44,7 +44,7 @@ export default async function RemindersPage() {
         (section) =>
           section.items.length > 0 && (
             <div key={section.title} className="mb-8">
-              <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500">
+              <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-zinc-500">
                 {section.title} ({section.items.length})
               </h2>
               <ul className="space-y-2">

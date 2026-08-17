@@ -22,7 +22,7 @@ export function ActivityForm({ leadId }: { leadId: string }) {
           name="type"
           value={type}
           onChange={(e) => setType(e.target.value)}
-          className="rounded-lg border border-neutral-300 px-2.5 py-1.5 text-xs text-neutral-900 outline-none focus:border-neutral-900"
+          className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs text-zinc-900 outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
         >
           <option value="call">Call</option>
           <option value="email">Email</option>
@@ -33,7 +33,7 @@ export function ActivityForm({ leadId }: { leadId: string }) {
           <select
             name="answered"
             defaultValue=""
-            className="rounded-lg border border-neutral-300 px-2.5 py-1.5 text-xs text-neutral-900 outline-none focus:border-neutral-900"
+            className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs text-zinc-900 outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
           >
             <option value="">Outcome…</option>
             <option value="true">Answered</option>
@@ -46,11 +46,11 @@ export function ActivityForm({ leadId }: { leadId: string }) {
         required
         placeholder="What happened?"
         rows={2}
-        className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-900"
+        className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
       />
       <button
         type="submit"
-        className="rounded-lg bg-neutral-900 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-neutral-800"
+        className="rounded-lg bg-accent px-3.5 py-1.5 text-xs font-semibold text-accent-foreground shadow-sm transition hover:opacity-90"
       >
         Log activity
       </button>

@@ -113,7 +113,7 @@ export function VoiceLogger({ leadId }: { leadId: string }) {
       <button
         type="button"
         onClick={startRecording}
-        className="mb-5 flex items-center gap-2 rounded-lg border border-neutral-300 px-3.5 py-2 text-xs font-medium text-neutral-700 transition hover:bg-neutral-100"
+        className="mb-5 flex items-center gap-2 rounded-lg border border-zinc-200 px-3.5 py-2 text-xs font-medium text-zinc-700 transition hover:bg-zinc-100"
       >
         <span className="h-2 w-2 rounded-full bg-red-500" />
         Record a voice note
@@ -132,12 +132,12 @@ export function VoiceLogger({ leadId }: { leadId: string }) {
           <button
             type="button"
             onClick={stopRecording}
-            className="rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800"
+            className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800"
           >
             Stop
           </button>
         </div>
-        <p className="min-h-[2.5rem] text-sm text-neutral-700">
+        <p className="min-h-[2.5rem] text-sm text-zinc-700">
           {transcript || "Start speaking…"}
         </p>
       </div>
@@ -146,7 +146,7 @@ export function VoiceLogger({ leadId }: { leadId: string }) {
 
   if (phase === "extracting") {
     return (
-      <div className="mb-5 rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-500">
+      <div className="mb-5 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-500">
         Making sense of that…
       </div>
     );
@@ -169,19 +169,19 @@ export function VoiceLogger({ leadId }: { leadId: string }) {
 
   if (phase === "confirming" && draft) {
     return (
-      <div className="mb-5 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+      <div className="mb-5 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
           Review before saving
         </p>
         <textarea
           value={draft.summary}
           onChange={(e) => setDraft({ ...draft, summary: e.target.value })}
           rows={2}
-          className="mb-3 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-900"
+          className="mb-3 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
         />
 
-        <div className="mb-3 flex items-center gap-2 text-sm text-neutral-700">
-          <span className="text-xs text-neutral-500">Call outcome:</span>
+        <div className="mb-3 flex items-center gap-2 text-sm text-zinc-700">
+          <span className="text-xs text-zinc-500">Call outcome:</span>
           <select
             value={draft.call_answered === null ? "" : String(draft.call_answered)}
             onChange={(e) =>
@@ -190,7 +190,7 @@ export function VoiceLogger({ leadId }: { leadId: string }) {
                 call_answered: e.target.value === "" ? null : e.target.value === "true",
               })
             }
-            className="rounded-lg border border-neutral-300 px-2 py-1 text-xs outline-none focus:border-neutral-900"
+            className="rounded-lg border border-zinc-200 px-2 py-1 text-xs outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
           >
             <option value="">Unclear</option>
             <option value="true">Answered</option>
@@ -199,7 +199,7 @@ export function VoiceLogger({ leadId }: { leadId: string }) {
         </div>
 
         {draft.suggested_stage && (
-          <label className="mb-2 flex items-center gap-2 text-sm text-neutral-700">
+          <label className="mb-2 flex items-center gap-2 text-sm text-zinc-700">
             <input
               type="checkbox"
               checked={applyStage}
@@ -213,7 +213,7 @@ export function VoiceLogger({ leadId }: { leadId: string }) {
         )}
 
         {draft.follow_up_date && (
-          <div className="mb-2 flex items-start gap-2 text-sm text-neutral-700">
+          <div className="mb-2 flex items-start gap-2 text-sm text-zinc-700">
             <input
               type="checkbox"
               checked={applyReminder}
@@ -229,13 +229,13 @@ export function VoiceLogger({ leadId }: { leadId: string }) {
                   onChange={(e) =>
                     setDraft({ ...draft, follow_up_date: new Date(e.target.value).toISOString() })
                   }
-                  className="rounded-lg border border-neutral-300 px-2 py-1 text-xs outline-none focus:border-neutral-900"
+                  className="rounded-lg border border-zinc-200 px-2 py-1 text-xs outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
                 />
                 <input
                   type="text"
                   value={draft.follow_up_note ?? ""}
                   onChange={(e) => setDraft({ ...draft, follow_up_note: e.target.value })}
-                  className="flex-1 rounded-lg border border-neutral-300 px-2 py-1 text-xs outline-none focus:border-neutral-900"
+                  className="flex-1 rounded-lg border border-zinc-200 px-2 py-1 text-xs outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
                 />
               </div>
             </div>
@@ -246,14 +246,14 @@ export function VoiceLogger({ leadId }: { leadId: string }) {
           <button
             type="button"
             onClick={reset}
-            className="rounded-lg border border-neutral-300 px-3.5 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100"
+            className="rounded-lg border border-zinc-200 px-3.5 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-100"
           >
             Discard
           </button>
           <button
             type="button"
             onClick={handleSave}
-            className="rounded-lg bg-neutral-900 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-neutral-800"
+            className="rounded-lg bg-accent px-3.5 py-1.5 text-xs font-semibold text-accent-foreground shadow-sm transition hover:opacity-90"
           >
             Save
           </button>

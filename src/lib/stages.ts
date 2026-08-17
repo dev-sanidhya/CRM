@@ -23,7 +23,7 @@ export const STAGE_LABELS: Record<Stage, string> = {
 };
 
 export const STAGE_STYLES: Record<Stage, string> = {
-  new: "bg-neutral-100 text-neutral-700",
+  new: "bg-zinc-100 text-zinc-700",
   attempted: "bg-amber-50 text-amber-700",
   contacted: "bg-blue-50 text-blue-700",
   qualified: "bg-indigo-50 text-indigo-700",
