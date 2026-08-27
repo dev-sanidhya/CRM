@@ -49,6 +49,14 @@ export default async function LeadsPage({
     return s ? `?${s}` : "";
   };
 
+  // Carried onto each lead link so the detail page can offer a back link
+  // that returns to this exact page/search instead of always resetting to
+  // page 1 (which is what the sidebar's plain "/leads" nav link does).
+  const leadHref = (leadId: string) => {
+    const backQs = qsFor(page);
+    return backQs ? `/leads/${leadId}?from=${encodeURIComponent(`/leads${backQs}`)}` : `/leads/${leadId}`;
+  };
+
   return (
     <div>
       {stats && <CallerStatsWidget stats={stats} />}
@@ -79,7 +87,7 @@ export default async function LeadsPage({
                 key={lead.id}
                 className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
               >
-                <Link href={`/leads/${lead.id}`} className="mb-1.5 flex items-start justify-between gap-2">
+                <Link href={leadHref(lead.id)} className="mb-1.5 flex items-start justify-between gap-2">
                   <span className="font-medium text-zinc-900">{lead.business_name}</span>
                   <StagePill stage={lead.stage as Stage} />
                 </Link>
@@ -116,7 +124,7 @@ export default async function LeadsPage({
                   <tr key={lead.id} className="transition hover:bg-zinc-50">
                     <td className="px-5 py-3.5">
                       <Link
-                        href={`/leads/${lead.id}`}
+                        href={leadHref(lead.id)}
                         className="font-medium text-zinc-900 hover:text-accent"
                       >
                         {lead.business_name}

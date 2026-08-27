@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAndProfile } from "@/lib/profile";
@@ -18,10 +19,14 @@ const ACTIVITY_TYPE_LABELS: Record<string, string> = {
 
 export default async function LeadDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   const { id } = await params;
+  const { from } = await searchParams;
+  const backHref = from && from.startsWith("/leads") ? from : "/leads";
   const { profile } = await getCurrentUserAndProfile();
   const supabase = await createClient();
 
@@ -57,6 +62,13 @@ export default async function LeadDetailPage({
 
   return (
     <div className="mx-auto max-w-3xl">
+      <Link
+        href={backHref}
+        className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-zinc-500 hover:text-accent"
+      >
+        ← Back to leads
+      </Link>
+
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
