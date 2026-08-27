@@ -11,6 +11,11 @@ export function LeadSearch() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    // Only push when the debounced value actually differs from what's
+    // already in the URL — this effect firing on mount/re-render (not just
+    // on typing) was stripping ?page= on every visit to /leads, resetting
+    // pagination to page 1 even when the search box was never touched.
+    if (value === (searchParams.get("q") ?? "")) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       const params = new URLSearchParams(searchParams);
