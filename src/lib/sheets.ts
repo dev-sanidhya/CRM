@@ -12,8 +12,13 @@ export function buildExportUrl(sheetId: string, gid: string | null): string {
 
 export function normalizePhone(raw: string): string {
   const trimmed = raw.trim();
-  const hasPlus = trimmed.startsWith("+");
-  const digits = trimmed.replace(/\D/g, "");
+  // A cell sometimes holds more than one number (e.g. "+91 76888 34111 /
+  // +91 82336 88000" for a primary + alternate contact) — take the first
+  // one rather than stripping non-digits across the whole cell, which
+  // would mash both numbers into one unusably long, undialable string.
+  const firstSegment = trimmed.split(/[/,;]| or /i)[0].trim();
+  const hasPlus = firstSegment.startsWith("+");
+  const digits = firstSegment.replace(/\D/g, "");
   if (hasPlus) return `+${digits}`;
   if (digits.length === 10) return `+91${digits}`;
   return digits ? `+${digits}` : "";
