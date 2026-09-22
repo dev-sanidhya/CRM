@@ -34,10 +34,11 @@ export default async function SheetsPage() {
     <div className="mx-auto max-w-2xl">
       <h1 className="font-display mb-2 text-2xl font-semibold tracking-tight text-zinc-900">Pull from Sheet</h1>
       <p className="mb-6 text-sm text-zinc-500">
-        Paste the day&apos;s Google Sheet link. Leads are matched by phone number, so
-        re-pulling the same sheet — or a new sheet with a repeated lead — updates
-        the existing record instead of duplicating it. Unrecognized column layouts
-        are mapped automatically.
+        Paste the day&apos;s Google Sheet link, or upload a spreadsheet directly
+        (.xlsx, .xls, .csv). Leads are matched by phone number, so re-pulling the
+        same sheet — or a new sheet with a repeated lead — updates the existing
+        record instead of duplicating it. Any column layout is mapped
+        automatically, regardless of source.
       </p>
 
       <PullForm />
