@@ -1,6 +1,7 @@
 "use server";
 
 import Papa from "papaparse";
+import * as XLSX from "xlsx";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { buildExportUrl, headerSignature, normalizePhone, parseSheetUrl } from "@/lib/sheets";
@@ -20,9 +21,29 @@ export type PullResult =
   | { ok: true; newCount: number; updatedCount: number; skipped: number; total: number; layoutLabel: string }
   | { ok: false; error: string; headers?: string[] };
 
-export async function pullSheet(_prev: PullResult | null, formData: FormData): Promise<PullResult> {
-  const url = String(formData.get("url") ?? "").trim();
-  if (!url) return { ok: false, error: "Paste a sheet link first." };
+// How many leading rows to scan for a header row before giving up — real
+// sheets show up with anywhere from zero to several title/subtitle/note
+// rows stacked above the real headers (e.g. a sheet with a title, a
+// description line, and a stats line before the header row).
+const HEADER_SCAN_ROWS = 10;
+
+// Shared by both the Google Sheet URL pull and the file-upload pull: takes
+// already-parsed raw string rows (from CSV or from an Excel workbook) and
+// runs the format-agnostic header detection + layout matching/inference +
+// import RPC. `sourceLabel` is stored as sheet_imports.sheet_url — either
+// the real Google Sheet link, or a `file:<name>` marker for uploads.
+async function importRows(
+  rawRows: string[][],
+  sourceLabel: string,
+  sheetTab: string | null,
+): Promise<PullResult> {
+  const filteredRows = rawRows
+    .map((r) => r.map((c) => (c ?? "").toString()))
+    .filter((r) => r.some((c) => c.trim()));
+
+  if (filteredRows.length === 0) {
+    return { ok: false, error: "That sheet looks empty." };
+  }
 
   const supabase = await createClient();
   const {
@@ -30,41 +51,14 @@ export async function pullSheet(_prev: PullResult | null, formData: FormData): P
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
-  let sheetId: string, gid: string | null;
-  try {
-    ({ sheetId, gid } = parseSheetUrl(url));
-  } catch (e) {
-    return { ok: false, error: (e as Error).message };
-  }
-
-  const exportUrl = buildExportUrl(sheetId, gid);
-  const res = await fetch(exportUrl);
-  if (!res.ok) {
-    return {
-      ok: false,
-      error: `Couldn't read that sheet (${res.status}). Make sure it's shared as "anyone with the link can view".`,
-    };
-  }
-  const csvText = await res.text();
-
-  // Parse without assuming row 0 is the header row — several of the daily
-  // sheets have a merged title row above the real headers (e.g. "Aperture —
-  // India Interior Designer Call Sheet | List F"). Scan the first few rows
-  // for one whose columns match a known layout signature.
-  const rawParsed = Papa.parse<string[]>(csvText, { skipEmptyLines: true });
-  const rawRows = rawParsed.data;
-  if (rawRows.length === 0) {
-    return { ok: false, error: "That sheet looks empty." };
-  }
-
   const { data: allLayouts } = await supabase
     .from("sheet_layouts")
     .select("id, label, column_mapping, status_map, header_signature");
 
   let headerRowIndex = -1;
   let layout: { id: string; label: string; column_mapping: ColumnMapping; status_map: Record<string, string> } | null = null;
-  for (let i = 0; i < Math.min(5, rawRows.length); i++) {
-    const signature = headerSignature(rawRows[i]);
+  for (let i = 0; i < Math.min(HEADER_SCAN_ROWS, filteredRows.length); i++) {
+    const signature = headerSignature(filteredRows[i]);
     const match = allLayouts?.find((l) => l.header_signature === signature);
     if (match) {
       headerRowIndex = i;
@@ -76,21 +70,21 @@ export async function pullSheet(_prev: PullResult | null, formData: FormData): P
   if (!layout) {
     // Format-agnostic fallback: no exact match against a known layout, so
     // detect the likely header row (first row with several non-empty cells
-    // — distinguishes a real header row from a one-cell merged title row)
+    // — distinguishes a real header row from a one-cell title/subtitle row)
     // and ask Groq to map its columns to our schema. The result is cached
     // as a new sheet_layouts row keyed by this exact header signature, so
     // this format is instant and free on every future pull.
     let candidateIndex = -1;
-    for (let i = 0; i < Math.min(5, rawRows.length); i++) {
-      if (rawRows[i].filter((c) => c.trim()).length >= 3) {
+    for (let i = 0; i < Math.min(HEADER_SCAN_ROWS, filteredRows.length); i++) {
+      if (filteredRows[i].filter((c) => c.trim()).length >= 3) {
         candidateIndex = i;
         break;
       }
     }
     if (candidateIndex === -1) candidateIndex = 0;
 
-    const candidateHeaders = rawRows[candidateIndex];
-    const sampleRowRaw = rawRows[candidateIndex + 1] ?? [];
+    const candidateHeaders = filteredRows[candidateIndex];
+    const sampleRowRaw = filteredRows[candidateIndex + 1] ?? [];
     const sampleRow: Record<string, string> = {};
     candidateHeaders.forEach((h, idx) => {
       sampleRow[h] = sampleRowRaw[idx] ?? "";
@@ -102,7 +96,7 @@ export async function pullSheet(_prev: PullResult | null, formData: FormData): P
         ok: false,
         error:
           "Couldn't automatically figure out this sheet's columns. Make sure it has clear headers for at least business name and phone.",
-        headers: rawRows.slice(0, 3).map((r) => r.join(" | ")),
+        headers: filteredRows.slice(0, 3).map((r) => r.join(" | ")),
       };
     }
 
@@ -132,8 +126,8 @@ export async function pullSheet(_prev: PullResult | null, formData: FormData): P
     layout = savedLayout;
   }
 
-  const headers = rawRows[headerRowIndex];
-  const rows: Record<string, string>[] = rawRows.slice(headerRowIndex + 1).map((r) => {
+  const headers = filteredRows[headerRowIndex];
+  const rows: Record<string, string>[] = filteredRows.slice(headerRowIndex + 1).map((r) => {
     const obj: Record<string, string> = {};
     headers.forEach((h, idx) => {
       obj[h] = r[idx] ?? "";
@@ -212,8 +206,8 @@ export async function pullSheet(_prev: PullResult | null, formData: FormData): P
   const { data: result, error } = await supabase.rpc("import_leads", {
     p_layout_id: layout.id,
     p_rows: payloadRows,
-    p_sheet_url: url,
-    p_sheet_tab: gid,
+    p_sheet_url: sourceLabel,
+    p_sheet_tab: sheetTab,
   });
 
   if (error) {
@@ -232,6 +226,68 @@ export async function pullSheet(_prev: PullResult | null, formData: FormData): P
     total: rows.length,
     layoutLabel: layout.label,
   };
+}
+
+export async function pullSheet(_prev: PullResult | null, formData: FormData): Promise<PullResult> {
+  const url = String(formData.get("url") ?? "").trim();
+  if (!url) return { ok: false, error: "Paste a sheet link first." };
+
+  let sheetId: string, gid: string | null;
+  try {
+    ({ sheetId, gid } = parseSheetUrl(url));
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+
+  const exportUrl = buildExportUrl(sheetId, gid);
+  const res = await fetch(exportUrl);
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: `Couldn't read that sheet (${res.status}). Make sure it's shared as "anyone with the link can view".`,
+    };
+  }
+  const csvText = await res.text();
+  const rawRows = Papa.parse<string[]>(csvText, { skipEmptyLines: true }).data;
+
+  return importRows(rawRows, url, gid);
+}
+
+// File-upload pull: lets anyone hand over a spreadsheet directly (.xlsx,
+// .xls, .csv) instead of needing it published as a Google Sheet first.
+// Goes through the same format-agnostic header detection and Groq mapping
+// as a URL pull, so any lead sheet someone drops in — regardless of source
+// or column layout — gets parsed the same way.
+export async function pullFile(_prev: PullResult | null, formData: FormData): Promise<PullResult> {
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, error: "Choose a file first." };
+  }
+
+  const name = file.name.toLowerCase();
+  let rawRows: string[][];
+
+  try {
+    if (name.endsWith(".csv")) {
+      const text = await file.text();
+      rawRows = Papa.parse<string[]>(text, { skipEmptyLines: true }).data;
+    } else {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      if (!sheetName) return { ok: false, error: "That workbook has no sheets." };
+      const worksheet = workbook.Sheets[sheetName];
+      rawRows = XLSX.utils.sheet_to_json<string[]>(worksheet, {
+        header: 1,
+        raw: false,
+        defval: "",
+      });
+    }
+  } catch (e) {
+    return { ok: false, error: `Couldn't read that file: ${(e as Error).message}` };
+  }
+
+  return importRows(rawRows, `file:${file.name}`, null);
 }
 
 export async function deleteSheetImport(importId: string) {
