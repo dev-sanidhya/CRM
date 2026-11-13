@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { deleteSheetImport } from "@/app/(app)/sheets/actions";
-import { formatDateTime } from "@/lib/format";
+import { formatWhen } from "@/lib/time";
 
 type Props = {
   id: string;
@@ -15,20 +15,15 @@ type Props = {
   canDelete: boolean;
 };
 
-export function SheetImportRow({
-  id,
-  sheetUrl,
-  importedAt,
-  layoutLabel,
-  newCount,
-  updatedCount,
-  currentCount,
-  canDelete,
-}: Props) {
+function sourceName(url: string) {
+  if (url.startsWith("file:")) return url.slice(5);
+  return url.includes("docs.google.com") ? "Google Sheet" : url;
+}
+
+export function SheetImportRow({ id, sheetUrl, importedAt, layoutLabel, newCount, updatedCount, currentCount, canDelete }: Props) {
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleted, setDeleted] = useState(false);
-
   if (deleted) return null;
 
   async function handleDelete() {
@@ -40,47 +35,42 @@ export function SheetImportRow({
   }
 
   return (
-    <li className="rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm shadow-sm">
+    <li className="border-b border-line px-4 py-3 text-sm last:border-0">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate font-medium text-zinc-800">{sheetUrl}</p>
-          <p className="text-xs text-zinc-500">
-            {formatDateTime(importedAt)} · {layoutLabel} · {newCount} new, {updatedCount} updated at the time
+          <p className="truncate font-medium text-ink">
+            {sheetUrl.startsWith("http") ? (
+              <a href={sheetUrl} target="_blank" rel="noreferrer" className="hover:underline">
+                {sourceName(sheetUrl)}
+              </a>
+            ) : (
+              sourceName(sheetUrl)
+            )}
+            <span className="ml-2 font-normal text-faint">{layoutLabel}</span>
           </p>
-          <p className="mt-0.5 text-xs">
-            <span className={currentCount > 0 ? "font-medium text-zinc-700" : "text-zinc-400"}>
-              {currentCount} lead{currentCount === 1 ? "" : "s"} currently on file from this sheet
-            </span>
+          <p className="text-muted">
+            {formatWhen(importedAt)}. {currentCount} lead{currentCount === 1 ? "" : "s"} on file
+            <span className="text-faint">{`, at import ${newCount} new and ${updatedCount} updated`}</span>
           </p>
         </div>
         {canDelete && !confirming && (
-          <button
-            onClick={() => setConfirming(true)}
-            className="shrink-0 text-xs font-medium text-red-600 hover:text-red-700"
-          >
+          <button type="button" onClick={() => setConfirming(true)} className="shrink-0 rounded-md px-2 py-1 text-xs text-faint hover:bg-sunken hover:text-lost">
             Delete
           </button>
         )}
       </div>
       {confirming && (
-        <div className="mt-2 flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2">
-          <p className="flex-1 text-xs text-red-700">
+        <div className="mt-2 flex items-center gap-2 rounded-xl bg-lost-soft px-3 py-2">
+          <p className="flex-1 text-xs text-lost">
             {currentCount > 0
-              ? `Delete all ${currentCount} lead${currentCount === 1 ? "" : "s"} currently from this sheet, along with their activity and reminders? This can't be undone.`
-              : "This sheet has no leads currently attached to it (they've likely been re-pulled into a newer import). Delete this record anyway?"}
+              ? `Delete the ${currentCount} lead${currentCount === 1 ? "" : "s"} from this import, with their calls and follow-ups?`
+              : "No leads are attached to this import any more. Delete the record?"}
           </p>
-          <button
-            onClick={() => setConfirming(false)}
-            className="shrink-0 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-100"
-          >
-            Cancel
+          <button type="button" onClick={() => setConfirming(false)} className="rounded-md bg-surface px-2.5 py-1 text-xs font-medium text-ink">
+            Keep
           </button>
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            className="shrink-0 rounded-lg bg-red-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
-          >
-            {deleting ? "Deleting…" : "Delete"}
+          <button type="button" onClick={handleDelete} disabled={deleting} className="rounded-md bg-lost px-2.5 py-1 text-xs font-medium text-white disabled:opacity-50">
+            {deleting ? "Deleting..." : "Delete"}
           </button>
         </div>
       )}

@@ -1,86 +1,102 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { pullSheet, pullFile, type PullResult } from "./actions";
 
 function ResultBanner({ state }: { state: PullResult | null }) {
   if (!state) return null;
-
   if (state.ok) {
     return (
-      <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-        <p className="font-medium">Pulled {state.total} rows — {state.layoutLabel}</p>
-        <p className="mt-1 text-emerald-700">
-          {state.newCount} new lead{state.newCount === 1 ? "" : "s"}, {state.updatedCount}{" "}
-          updated{state.skipped > 0 && `, ${state.skipped} skipped (missing phone/name)`}.
+      <div className="mt-3 rounded-xl bg-call-soft px-4 py-3 text-sm text-call">
+        <p className="font-medium">
+          {state.newCount} new lead{state.newCount === 1 ? "" : "s"} added, {state.updatedCount} updated
+        </p>
+        <p className="mt-0.5 opacity-80">
+          {state.total} rows read as {state.layoutLabel}
+          {state.skipped > 0 && `. ${state.skipped} skipped for a missing name or phone`}.
         </p>
       </div>
     );
   }
-
   return (
-    <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+    <div className="mt-3 rounded-xl bg-lost-soft px-4 py-3 text-sm text-lost">
       <p className="font-medium">{state.error}</p>
-      {state.headers && (
-        <p className="mt-2 text-xs text-red-700">Headers found: {state.headers.join(", ")}</p>
-      )}
+      {state.headers && <p className="mt-1 text-xs opacity-80">Columns found: {state.headers.join(", ")}</p>}
     </div>
   );
 }
 
 export function PullForm() {
-  const [urlState, urlFormAction, urlPending] = useActionState<PullResult | null, FormData>(
-    pullSheet,
-    null,
-  );
-  const [fileState, fileFormAction, filePending] = useActionState<PullResult | null, FormData>(
-    pullFile,
-    null,
-  );
+  const [urlState, urlAction, urlPending] = useActionState<PullResult | null, FormData>(pullSheet, null);
+  const [fileState, fileAction, filePending] = useActionState<PullResult | null, FormData>(pullFile, null);
+  const [fileName, setFileName] = useState("");
+  const [dragging, setDragging] = useState(false);
+  const fileForm = useRef<HTMLFormElement>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  function takeFile(file: File | undefined) {
+    if (!file || !fileInput.current) return;
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    fileInput.current.files = dt.files;
+    setFileName(file.name);
+    fileForm.current?.requestSubmit();
+  }
 
   return (
-    <div>
-      <form action={urlFormAction} className="mb-3 flex flex-col gap-2 sm:flex-row">
-        <input
-          type="url"
-          name="url"
-          placeholder="Paste today's Google Sheet link"
-          className="flex-1 rounded-xl border border-zinc-200 px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
-        />
-        <button
-          type="submit"
-          disabled={urlPending}
-          className="rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground shadow-sm transition hover:opacity-90 disabled:opacity-50"
-        >
-          {urlPending ? "Pulling…" : "Pull"}
-        </button>
+    <div className="space-y-4">
+      <form action={urlAction} className="rounded-2xl border border-line bg-surface p-4">
+        <label htmlFor="sheet-url" className="mb-2 block text-sm font-medium text-ink">
+          Google Sheet link
+        </label>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input
+            id="sheet-url"
+            type="url"
+            name="url"
+            required
+            placeholder="https://docs.google.com/spreadsheets/d/..."
+            className="min-w-0 flex-1 rounded-xl border border-line px-3 py-2.5 text-sm outline-none placeholder:text-faint focus:border-ink"
+          />
+          <button type="submit" disabled={urlPending} className="rounded-xl bg-ink px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
+            {urlPending ? "Importing..." : "Import"}
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-faint">The sheet must be shared as anyone with the link can view.</p>
+        <ResultBanner state={urlState} />
       </form>
 
-      <div className="mb-6 flex items-center gap-3 text-xs text-zinc-400">
-        <div className="h-px flex-1 bg-zinc-200" />
-        or upload a file
-        <div className="h-px flex-1 bg-zinc-200" />
-      </div>
-
-      <form action={fileFormAction} className="mb-6 flex flex-col gap-2 sm:flex-row">
-        <input
-          type="file"
-          name="file"
-          accept=".xlsx,.xls,.csv"
-          required
-          className="flex-1 rounded-xl border border-zinc-200 px-3.5 py-2 text-sm text-zinc-700 outline-none file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-100 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-zinc-700 focus:border-accent focus:ring-2 focus:ring-accent/20"
-        />
-        <button
-          type="submit"
-          disabled={filePending}
-          className="rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm transition hover:bg-zinc-50 disabled:opacity-50"
+      <form ref={fileForm} action={fileAction}>
+        <label
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragging(false);
+            takeFile(e.dataTransfer.files?.[0]);
+          }}
+          className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-8 text-center transition-colors ${
+            dragging ? "border-ink bg-surface" : "border-line-strong bg-surface/60 hover:border-ink"
+          }`}
         >
-          {filePending ? "Pulling…" : "Pull file"}
-        </button>
+          <span className="text-sm font-medium text-ink">
+            {filePending ? `Importing ${fileName}...` : "Drop an .xlsx, .xls or .csv file here"}
+          </span>
+          <span className="mt-1 text-xs text-muted">or click to choose one</span>
+          <input
+            ref={fileInput}
+            type="file"
+            name="file"
+            accept=".xlsx,.xls,.csv"
+            className="sr-only"
+            onChange={(e) => takeFile(e.target.files?.[0])}
+          />
+        </label>
+        <ResultBanner state={fileState} />
       </form>
-
-      <ResultBanner state={urlState} />
-      <ResultBanner state={fileState} />
     </div>
   );
 }

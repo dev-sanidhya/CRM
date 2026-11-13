@@ -2,110 +2,191 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUserAndProfile } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
-import { getTeamTotals, getStageFunnel } from "@/lib/callerStats";
-import { CallerCard } from "@/components/CallerCard";
-import { STAGE_LABELS, type Stage } from "@/lib/stages";
+import { STAGES, STAGE_LABELS, type Stage } from "@/lib/stages";
+import { outcomeLabel, outcomeTone } from "@/lib/outcomes";
+import { formatWhen } from "@/lib/time";
+import { DAILY_TARGET, EMPTY_STATS, type DayStats } from "@/lib/queue";
 
-function TotalBlock({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex-1 rounded-xl border border-zinc-200 bg-white px-4 py-3.5 text-center shadow-sm">
-      <p className="text-2xl font-bold tracking-tight text-accent">{value}</p>
-      <p className="text-xs text-zinc-500">{label}</p>
-    </div>
-  );
+const STAGE_BAR: Record<Stage, string> = {
+  new: "bg-line-strong",
+  attempted: "bg-ink/40",
+  contacted: "bg-amber",
+  qualified: "bg-call",
+  meeting_booked: "bg-demo",
+  proposal_sent: "bg-demo/70",
+  won: "bg-call",
+  lost: "bg-lost/70",
+};
+
+function hoursAgoIso(h: number) {
+  return new Date(Date.now() - h * 3600_000).toISOString();
 }
 
 export default async function TeamPage() {
   const { profile } = await getCurrentUserAndProfile();
-  if (profile?.role !== "founder") redirect("/leads");
+  if (profile?.role !== "founder") redirect("/today");
 
   const supabase = await createClient();
-  const { data: callers } = await supabase
-    .from("profiles")
-    .select("id, name")
-    .eq("role", "caller")
-    .order("name");
+  const { data: callers } = await supabase.from("profiles").select("id, name").eq("role", "caller").order("name");
+  const ids = (callers ?? []).map((c) => c.id);
 
-  const callerIds = (callers ?? []).map((c) => c.id);
-  const [totals, funnel, { count: sheetImportCount }, { count: totalLeadCount }] = await Promise.all([
-    getTeamTotals(supabase, callerIds),
-    getStageFunnel(supabase),
-    supabase.from("sheet_imports").select("*", { count: "exact", head: true }),
-    supabase.from("leads").select("*", { count: "exact", head: true }),
+  const [statsList, { data: recent }, { data: demos }, { data: stageRows }, { count: importCount }] = await Promise.all([
+    Promise.all(ids.map((id) => supabase.rpc("get_day_stats", { p_caller: id }))),
+    ids.length
+      ? supabase
+          .from("activities")
+          .select("id, actor, outcome, summary, created_at, next_at, leads:lead_id(id, business_name, city)")
+          .eq("type", "call")
+          .in("actor", ids)
+          .order("created_at", { ascending: false })
+          .limit(40)
+      : Promise.resolve({ data: [] }),
+    supabase
+      .from("reminders")
+      .select("id, due_at, note, leads:lead_id(id, business_name, city, phone)")
+      .eq("kind", "demo")
+      .neq("status", "done")
+      .gte("due_at", hoursAgoIso(6))
+      .order("due_at")
+      .limit(20),
+    supabase.rpc("get_stage_counts"),
+    supabase.from("sheet_imports").select("id", { count: "exact", head: true }),
   ]);
-  const funnelTotal = funnel.reduce((sum, f) => sum + f.count, 0);
+
+  const stageCounts = new Map<string, number>(((stageRows as { stage: string; n: number }[]) ?? []).map((r) => [r.stage, Number(r.n)]));
+  const totalLeads = [...stageCounts.values()].reduce((a, b) => a + b, 0);
+  const nameOf = new Map((callers ?? []).map((c) => [c.id, c.name]));
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="font-display mb-6 text-2xl font-semibold tracking-tight text-zinc-900">Team</h1>
+    <div className="mx-auto max-w-5xl space-y-6">
+      <h1 className="text-2xl font-semibold tracking-tight text-ink">Team</h1>
 
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-        Team totals — all time
-      </p>
-      <div className="mb-8 grid grid-cols-2 gap-2.5 sm:flex">
-        <TotalBlock label="Calls dialled" value={totals.calls} />
-        <TotalBlock label="No answer" value={totals.noAnswer} />
-        <TotalBlock label="Demos booked" value={totals.demosBooked} />
-        <TotalBlock label="Follow-ups done" value={totals.followUpsDone} />
+      {(callers ?? []).length === 0 && <p className="text-sm text-muted">No caller accounts yet.</p>}
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {(callers ?? []).map((c, i) => {
+          const s = (statsList[i]?.data as DayStats) ?? EMPTY_STATS;
+          const pct = Math.min(100, Math.round((s.dials / DAILY_TARGET) * 100));
+          const connectRate = s.week_dials ? Math.round((s.week_connected / s.week_dials) * 100) : 0;
+          return (
+            <section key={c.id} className="rounded-2xl border border-line bg-surface p-5">
+              <div className="mb-3 flex items-baseline justify-between">
+                <h2 className="text-[17px] font-semibold text-ink">{c.name}</h2>
+                <Link href={`/today?caller=${c.id}`} className="text-sm font-medium text-muted hover:text-ink">
+                  Open their list
+                </Link>
+              </div>
+              <p className="text-ink">
+                <span className="text-3xl font-semibold tabular-nums">{s.dials}</span>
+                <span className="text-muted"> of {DAILY_TARGET} dials today</span>
+              </p>
+              <div className="my-3 h-2 overflow-hidden rounded-full bg-sunken">
+                <div className="h-full rounded-full bg-call" style={{ width: `${pct}%` }} />
+              </div>
+              <dl className="grid grid-cols-3 gap-y-3 text-sm">
+                <Metric label="Spoke today" value={s.connected} />
+                <Metric label="Demos today" value={s.demos} />
+                <Metric label="Follow-ups done" value={s.follow_ups_done} />
+                <Metric label="Dials this week" value={s.week_dials} />
+                <Metric label="Connect rate (week)" value={`${connectRate}%`} />
+                <Metric label="Overdue" value={s.overdue} warn={s.overdue > 0} />
+                <Metric label="Due tomorrow" value={s.due_tomorrow} />
+                <Metric label="All-time dials" value={s.all_time_dials} />
+                <Metric label="All-time demos" value={s.all_time_demos} />
+              </dl>
+            </section>
+          );
+        })}
       </div>
 
-      {funnelTotal > 0 && (
-        <div className="mb-8">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            Pipeline by stage
-          </p>
-          <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="flex h-3 overflow-hidden rounded-full bg-zinc-100">
-              {funnel.map((f) => (
-                <div
-                  key={f.stage}
-                  style={{ width: `${(f.count / funnelTotal) * 100}%` }}
-                  className="h-full bg-accent first:rounded-l-full last:rounded-r-full"
-                  title={`${STAGE_LABELS[f.stage as Stage]}: ${f.count}`}
-                />
+      <div className="grid gap-4 md:grid-cols-[1fr_20rem]">
+        <section className="rounded-2xl border border-line bg-surface p-5">
+          <h2 className="mb-3 text-[15px] font-semibold text-ink">Latest calls</h2>
+          {!recent || recent.length === 0 ? (
+            <p className="text-sm text-faint">No calls logged yet.</p>
+          ) : (
+            <ul className="divide-y divide-line">
+              {recent.map((a) => {
+                const lead = a.leads as unknown as { id: string; business_name: string; city: string | null } | null;
+                const tone = outcomeTone(a.outcome);
+                return (
+                  <li key={a.id} className="flex items-start gap-3 py-2.5 text-sm">
+                    <span className="w-28 shrink-0 tabular-nums text-faint">{formatWhen(a.created_at)}</span>
+                    <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-xs font-medium ${tone.soft}`}>{outcomeLabel(a.outcome) || "Call"}</span>
+                    <div className="min-w-0 flex-1">
+                      <Link href={`/leads/${lead?.id}?from=/team`} className="font-medium text-ink hover:underline">
+                        {lead?.business_name ?? "Deleted lead"}
+                      </Link>
+                      <span className="text-faint">{`  ${nameOf.get(a.actor) ?? ""}`}</span>
+                      {a.summary && a.summary !== outcomeLabel(a.outcome) && <p className="truncate text-muted">{a.summary}</p>}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
+        <div className="space-y-4">
+          <section className="rounded-2xl border border-line bg-surface p-5">
+            <h2 className="mb-3 text-[15px] font-semibold text-ink">Upcoming demos</h2>
+            {!demos || demos.length === 0 ? (
+              <p className="text-sm text-faint">None booked.</p>
+            ) : (
+              <ul className="space-y-2.5">
+                {demos.map((d) => {
+                  const lead = d.leads as unknown as { id: string; business_name: string; city: string | null; phone: string } | null;
+                  return (
+                    <li key={d.id} className="text-sm">
+                      <p className="font-medium text-demo">{formatWhen(d.due_at)}</p>
+                      <Link href={`/leads/${lead?.id}?from=/team`} className="text-ink hover:underline">
+                        {lead?.business_name}
+                      </Link>
+                      <p className="text-muted">{[lead?.city, lead?.phone].filter(Boolean).join("  ")}</p>
+                      {d.note && d.note !== "Demo booked" && <p className="text-faint">{d.note}</p>}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+
+          <section className="rounded-2xl border border-line bg-surface p-5">
+            <h2 className="mb-3 text-[15px] font-semibold text-ink">Pipeline</h2>
+            {totalLeads > 0 && (
+              <div className="mb-3 flex h-2.5 overflow-hidden rounded-full bg-sunken">
+                {STAGES.map((st) => {
+                  const n = stageCounts.get(st) ?? 0;
+                  return n ? <div key={st} className={STAGE_BAR[st]} style={{ width: `${(n / totalLeads) * 100}%` }} title={`${STAGE_LABELS[st]}: ${n}`} /> : null;
+                })}
+              </div>
+            )}
+            <dl className="space-y-1 text-sm">
+              {STAGES.map((st) => (
+                <div key={st} className="flex items-center justify-between">
+                  <dt className="flex items-center gap-2 text-muted">
+                    <span className={`h-2 w-2 rounded-full ${STAGE_BAR[st]}`} />
+                    {STAGE_LABELS[st]}
+                  </dt>
+                  <dd className="tabular-nums text-ink">{stageCounts.get(st) ?? 0}</dd>
+                </div>
               ))}
-            </div>
-            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-600">
-              {funnel.map((f) => (
-                <span key={f.stage}>
-                  {STAGE_LABELS[f.stage as Stage]}: <strong className="text-zinc-900">{f.count}</strong>
-                </span>
-              ))}
-            </div>
-          </div>
+            </dl>
+            <Link href="/sheets" className="mt-4 block text-sm font-medium text-muted hover:text-ink">
+              {totalLeads.toLocaleString("en-IN")} leads from {importCount ?? 0} imports. Manage imports
+            </Link>
+          </section>
         </div>
-      )}
-
-      <div className="mb-8">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-          Data sources
-        </p>
-        <Link
-          href="/sheets"
-          className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-accent/40"
-        >
-          <div>
-            <p className="text-sm font-medium text-zinc-800">
-              {totalLeadCount ?? 0} lead{totalLeadCount === 1 ? "" : "s"} from {sheetImportCount ?? 0} sheet
-              pull{sheetImportCount === 1 ? "" : "s"}
-            </p>
-            <p className="text-xs text-zinc-500">
-              See every sheet ever pulled in and wipe any of them
-            </p>
-          </div>
-          <span className="text-sm font-medium text-accent">Manage →</span>
-        </Link>
       </div>
+    </div>
+  );
+}
 
-      {(!callers || callers.length === 0) && (
-        <p className="text-sm text-zinc-500">No caller accounts yet.</p>
-      )}
-
-      <div className="space-y-8">
-        {callers?.map((caller) => (
-          <CallerCard key={caller.id} callerId={caller.id} callerName={caller.name} />
-        ))}
-      </div>
+function Metric({ label, value, warn }: { label: string; value: number | string; warn?: boolean }) {
+  return (
+    <div className="flex flex-col-reverse">
+      <dt className="text-xs text-muted">{label}</dt>
+      <dd className={`text-lg font-semibold tabular-nums ${warn ? "text-lost" : "text-ink"}`}>{value}</dd>
     </div>
   );
 }

@@ -4,9 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-// Accounts are plain email/password. A bare username (no "@") is treated as
-// an internal login handle and mapped to a fixed local domain, so callers
-// can sign in with something like "diksha" instead of a real email address.
+// A bare username (no "@") maps to an internal login domain, so callers can
+// sign in with "diksha" instead of an email address.
 function resolveIdentifier(input: string): string {
   const trimmed = input.trim();
   return trimmed.includes("@") ? trimmed : `${trimmed}@leadcrm.local`;
@@ -21,8 +20,7 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setStatus("loading");
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error } = await createClient().auth.signInWithPassword({
       email: resolveIdentifier(identifier),
       password,
     });
@@ -30,58 +28,49 @@ export default function LoginPage() {
       setStatus("error");
       return;
     }
-    router.replace("/");
+    router.replace("/today");
     router.refresh();
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-zinc-50 to-zinc-100 px-4">
+    <main className="flex min-h-screen items-center justify-center bg-canvas px-4">
       <div className="w-full max-w-sm">
-        <div className="mb-6 flex justify-center">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent text-lg font-bold text-accent-foreground shadow-lg shadow-accent/25">
-            L
-          </div>
-        </div>
-        <h1 className="font-display mb-1 text-center text-3xl font-semibold tracking-tight text-zinc-900">
-          Lead CRM
-        </h1>
-        <p className="mb-8 text-center text-sm text-zinc-500">Sign in to continue.</p>
-
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl shadow-zinc-900/5"
-        >
-          <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+        <p className="text-2xl font-semibold tracking-tight text-ink">Aperture Calls</p>
+        <p className="mb-6 mt-1 text-sm text-muted">Sign in to see today&apos;s list.</p>
+        <form onSubmit={handleSubmit} className="rounded-2xl border border-line bg-surface p-5">
+          <label htmlFor="login-id" className="mb-1.5 block text-sm font-medium text-ink">
             Username or email
           </label>
           <input
+            id="login-id"
             type="text"
+            autoComplete="username"
+            autoCapitalize="none"
             required
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
-            placeholder="you@example.com"
-            className="mb-4 w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-sm text-zinc-900 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+            className="mb-4 w-full rounded-xl border border-line px-3 py-2.5 text-sm outline-none focus:border-ink"
           />
-          <label className="mb-1.5 block text-sm font-medium text-zinc-700">Password</label>
+          <label htmlFor="login-pw" className="mb-1.5 block text-sm font-medium text-ink">
+            Password
+          </label>
           <input
+            id="login-pw"
             type="password"
+            autoComplete="current-password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mb-5 w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-sm text-zinc-900 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+            className="mb-5 w-full rounded-xl border border-line px-3 py-2.5 text-sm outline-none focus:border-ink"
           />
           <button
             type="submit"
             disabled={status === "loading"}
-            className="w-full rounded-xl bg-accent px-3.5 py-2.5 text-sm font-semibold text-accent-foreground shadow-sm transition hover:opacity-90 disabled:opacity-50"
+            className="w-full rounded-xl bg-ink px-3.5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
           >
-            {status === "loading" ? "Signing in…" : "Sign in"}
+            {status === "loading" ? "Signing in..." : "Sign in"}
           </button>
-          {status === "error" && (
-            <p className="mt-3 text-center text-sm text-red-600">
-              Wrong username/email or password.
-            </p>
-          )}
+          {status === "error" && <p className="mt-3 text-sm text-lost">That username or password didn&apos;t match.</p>}
         </form>
       </div>
     </main>

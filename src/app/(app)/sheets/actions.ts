@@ -215,7 +215,7 @@ async function importRows(
   }
 
   revalidatePath("/leads");
-  revalidatePath("/reminders");
+  revalidatePath("/today");
   revalidatePath("/sheets");
 
   return {
@@ -295,7 +295,7 @@ export async function deleteSheetImport(importId: string) {
   const { data, error } = await supabase.rpc("delete_sheet_import", { p_import_id: importId });
 
   revalidatePath("/leads");
-  revalidatePath("/reminders");
+  revalidatePath("/today");
   revalidatePath("/sheets");
 
   if (error) return { ok: false as const, error: error.message };
