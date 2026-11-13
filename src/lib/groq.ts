@@ -119,16 +119,28 @@ export async function extractFromTranscript(
     throw new Error("GROQ_API_KEY is not configured.");
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  // The caller works in IST; give the model the local date, weekday and
+  // time, and make it return an explicit +05:30 offset so "Thursday at 4"
+  // lands at 4 pm IST rather than 4 pm UTC.
+  const nowIst = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kolkata",
+    weekday: "long",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date());
 
-  const systemPrompt = `You extract structured call notes from a sales caller's spoken debrief about a cold-call lead. Today's date is ${today}. Resolve relative day references ("Thursday", "next week", "tomorrow") against today's date.
+  const systemPrompt = `You extract structured call notes from a sales caller's spoken debrief about a cold-call lead. The caller is in India. Right now it is ${nowIst} (India Standard Time). Resolve relative day references ("Thursday", "next week", "tomorrow", "in 2 hours") against that. Write every datetime in IST with an explicit +05:30 offset, e.g. 2026-11-20T16:00:00+05:30.
 
 Return strict JSON matching this shape, nothing else:
 {
   "summary": string (1-2 clean sentences summarizing what happened on the call),
   "call_answered": true if the lead picked up and there was a conversation, false if it explicitly says no answer/voicemail/didn't pick up, null if unclear from the transcript,
   "suggested_stage": one of [${STAGE_VALUES.join(", ")}] or null (only set this if the transcript clearly implies the lead's stage changed; otherwise null),
-  "follow_up_date": ISO 8601 datetime string or null (only set if a specific future date/day was mentioned for a callback; default to 10:00 local time if no time was given),
+  "follow_up_date": ISO 8601 datetime string or null (only set if a specific future date/day was mentioned for a callback; default to 11:00 IST if no time was given, always with the +05:30 offset),
   "follow_up_note": short string describing what the follow-up is about, or null (only set alongside follow_up_date),
   "sentiment": one of "positive", "neutral", "negative", or null
 }`;
