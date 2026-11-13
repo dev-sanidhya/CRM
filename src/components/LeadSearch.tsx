@@ -11,10 +11,8 @@ export function LeadSearch() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    // Only push when the debounced value actually differs from what's
-    // already in the URL — this effect firing on mount/re-render (not just
-    // on typing) was stripping ?page= on every visit to /leads, resetting
-    // pagination to page 1 even when the search box was never touched.
+    // Only navigate when the typed value differs from the URL, otherwise
+    // simply landing on ?page=5 would reset pagination.
     if (value === (searchParams.get("q") ?? "")) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -22,7 +20,7 @@ export function LeadSearch() {
       if (value) params.set("q", value);
       else params.delete("q");
       params.delete("page");
-      router.push(`${pathname}?${params.toString()}`);
+      router.replace(`${pathname}?${params.toString()}`);
     }, 250);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -31,23 +29,17 @@ export function LeadSearch() {
   }, [value]);
 
   return (
-    <div className="relative">
-      <svg
-        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
-        fill="none"
-      >
+    <div className="relative w-full sm:w-80">
+      <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
         <circle cx="7" cy="7" r="5.25" stroke="currentColor" strokeWidth="1.4" />
         <path d="M11 11 14.5 14.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
       </svg>
       <input
-        type="text"
+        type="search"
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Search by name, city, or phone…"
-        className="w-72 rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-sm text-zinc-900 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+        placeholder="Name, city or phone digits"
+        className="w-full rounded-xl border border-line bg-surface py-2.5 pl-9 pr-3 text-sm text-ink outline-none placeholder:text-faint focus:border-ink"
       />
     </div>
   );
