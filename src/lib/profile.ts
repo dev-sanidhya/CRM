@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
 export type Profile = {
@@ -6,19 +7,23 @@ export type Profile = {
   role: "founder" | "caller";
 };
 
-export async function getCurrentUserAndProfile() {
+/**
+ * Who is signed in, once per request. The layout and the page both need
+ * this; `cache` makes the second call free instead of another two network
+ * trips. `getClaims` verifies the session token locally (asymmetric JWT
+ * signing keys), so it does not call the Auth server on every navigation.
+ */
+export const getCurrentUserAndProfile = cache(async () => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return { user: null, profile: null };
+  const { data } = await supabase.auth.getClaims();
+  const userId = data?.claims?.sub;
+  if (!userId) return { user: null, profile: null };
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("id, name, role")
-    .eq("id", user.id)
+    .eq("id", userId)
     .maybeSingle();
 
-  return { user, profile: profile as Profile | null };
-}
+  return { user: { id: userId }, profile: profile as Profile | null };
+});
