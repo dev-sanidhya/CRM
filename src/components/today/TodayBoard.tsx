@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { OUTCOME_META, isConnected, outcomeLabel, outcomeTone } from "@/lib/outcomes";
+import { OUTCOME_META, isConnected, isTypingTarget, outcomeLabel, outcomeTone } from "@/lib/outcomes";
 import { formatAgo, formatTime, formatWhen, startOfIstDay } from "@/lib/time";
 import {
   DETAILS_MESSAGE,
@@ -15,6 +15,7 @@ import {
   type QueueSection,
 } from "@/lib/queue";
 import { DialMeter } from "@/components/today/DialMeter";
+import { STAGE_LABELS, type Stage } from "@/lib/stages";
 import { OutcomeSheet, type ActiveCall, type LogInput, type SheetLead } from "@/components/today/OutcomeSheet";
 import { LeadPeek, type PeekLead } from "@/components/today/LeadPeek";
 import { EodReport } from "@/components/today/EodReport";
@@ -215,7 +216,7 @@ export function TodayBoard({
 
   // ---- toasts ---------------------------------------------------------------
 
-  const pushToast = useCallback((t: Toast, ms = 6000) => {
+  const pushToast = useCallback((t: Toast, ms = 10000) => {
     setToasts((list) => [...list.filter((x) => x.id !== t.id), t].slice(-3));
     setTimeout(() => setToasts((list) => list.filter((x) => x.id !== t.id)), ms);
   }, []);
@@ -344,11 +345,11 @@ export function TodayBoard({
     if (q.length < 2) return;
     const t = setTimeout(async () => {
       const digits = q.replace(/\D/g, "");
-      const term = q.replace(/[%_,()]/g, "");
+      const term = q.replace(/[%_,()*]/g, "");
       const filter =
         digits.length >= 3
-          ? `phone.ilike.%${digits}%,business_name.ilike.%${term}%`
-          : `business_name.ilike.%${term}%,city.ilike.%${term}%`;
+          ? `phone.ilike.*${digits}*,business_name.ilike.*${term}*`
+          : `business_name.ilike.*${term}*,city.ilike.*${term}*`;
       const { data } = await sb
         .from("leads")
         .select("id, business_name, city, phone, stage, attempt_count, last_note, extra_fields")
@@ -392,7 +393,7 @@ export function TodayBoard({
     if (sheet || peek || showEod || showAdd) return;
     function onKey(e: KeyboardEvent) {
       const el = e.target as HTMLElement;
-      if (el?.tagName === "INPUT" || el?.tagName === "TEXTAREA") {
+      if (isTypingTarget(el)) {
         if (e.key === "Escape") {
           setQuery("");
           el.blur();
@@ -468,7 +469,7 @@ export function TodayBoard({
             ref={searchRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Find by name, city or last digits of a number"
+            placeholder="Name, city or number"
             className="w-full rounded-xl border border-line bg-surface py-2.5 pl-9 pr-3 text-sm text-ink outline-none placeholder:text-faint focus:border-ink"
           />
         </div>
@@ -561,7 +562,7 @@ export function TodayBoard({
                 <button type="button" onClick={() => setPeek(r)} className="min-w-0 flex-1 text-left">
                   <p className="truncate font-medium text-ink">{r.business_name}</p>
                   <p className="truncate text-sm text-muted">
-                    {[r.city, r.phone, r.stage?.replace(/_/g, " ")].filter(Boolean).join("  ")}
+                    {[r.city, r.phone, r.stage ? STAGE_LABELS[r.stage as Stage] : null].filter(Boolean).join(", ")}
                   </p>
                 </button>
                 <button type="button" onClick={() => openLog(r)} className="hidden rounded-lg px-3 py-2 text-sm font-medium text-muted hover:bg-sunken hover:text-ink sm:block">
@@ -726,7 +727,7 @@ function QueueItem({
 }) {
   const due = row.due_at ? new Date(row.due_at) : null;
   const overdue = due && due.getTime() < sod;
-  const later = due && due.getTime() > now;
+  const later = due && due.getTime() > now + 2 * 60_000;
   const tone = outcomeTone(row.last_outcome);
 
   return (

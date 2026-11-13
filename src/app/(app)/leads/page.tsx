@@ -49,13 +49,13 @@ export default async function LeadsPage({
       ? query.order("last_called_at", { ascending: false, nullsFirst: false })
       : query.order("updated_at", { ascending: false });
 
-  const term = q.trim().replace(/[%_,()]/g, "");
+  const term = q.trim().replace(/[%_,()*]/g, "");
   if (term) {
     const digits = term.replace(/\D/g, "");
     query = query.or(
       digits.length >= 3
-        ? `phone.ilike.%${digits}%,business_name.ilike.%${term}%`
-        : `business_name.ilike.%${term}%,city.ilike.%${term}%`,
+        ? `phone.ilike.*${digits}*,business_name.ilike.*${term}*`
+        : `business_name.ilike.*${term}*,city.ilike.*${term}*`,
     );
   }
 

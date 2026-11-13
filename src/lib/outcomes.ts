@@ -50,6 +50,7 @@ export function isConnected(o: Outcome | null | undefined): boolean {
 
 export function outcomeLabel(o: string | null | undefined): string {
   if (!o) return "";
+  if (o === "connected") return "Spoke";
   return OUTCOME_META[o as Outcome]?.label ?? o.replace(/_/g, " ");
 }
 
@@ -77,6 +78,17 @@ export const TONE_CLASSES: Record<string, { solid: string; soft: string; text: s
 };
 
 export function outcomeTone(o: string | null | undefined) {
+  if (o === "connected") return TONE_CLASSES.call;
   const meta = o ? OUTCOME_META[o as Outcome] : null;
   return TONE_CLASSES[meta?.tone ?? "ink"];
+}
+
+/** True when a key press is going into a text field (not a checkbox or button). */
+export function isTypingTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el) return false;
+  if (el.tagName === "TEXTAREA" || el.isContentEditable) return true;
+  if (el.tagName !== "INPUT") return false;
+  const type = (el as HTMLInputElement).type;
+  return !["checkbox", "radio", "button", "submit", "reset"].includes(type);
 }

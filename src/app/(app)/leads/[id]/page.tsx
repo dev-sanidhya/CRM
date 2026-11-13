@@ -29,7 +29,7 @@ export default async function LeadDetailPage({
     supabase.from("leads").select("*").eq("id", id).maybeSingle(),
     supabase
       .from("activities")
-      .select("id, type, outcome, summary, created_at, next_at, source, profiles:actor(name)")
+      .select("id, type, outcome, summary, created_at, next_at, source, to_stage, profiles:actor(name)")
       .eq("lead_id", id)
       .order("created_at", { ascending: false })
       .limit(100),
@@ -43,7 +43,10 @@ export default async function LeadDetailPage({
     id: a.id,
     type: a.type,
     outcome: a.outcome,
-    summary: a.summary,
+    summary:
+      a.type === "status_change" && a.to_stage
+        ? `Stage set to ${STAGE_LABELS[a.to_stage as Stage] ?? a.to_stage}`
+        : a.summary,
     created_at: a.created_at,
     next_at: a.next_at,
     source: a.source,
@@ -67,7 +70,7 @@ export default async function LeadDetailPage({
           <StagePill stage={lead.stage as Stage} />
         </div>
         <p className="mt-1 text-sm text-muted">
-          {[lead.city, lead.phone].filter(Boolean).join("  ")}
+          {[lead.city, lead.phone].filter(Boolean).join(", ")}
           {lead.website && (
             <>
               {"  "}
@@ -100,7 +103,7 @@ export default async function LeadDetailPage({
       </div>
 
       <div className="grid gap-4 md:grid-cols-[1fr_15rem]">
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           {script.length > 0 && (
             <section className="rounded-2xl border border-line bg-surface p-5">
               <h2 className="mb-3 text-[15px] font-semibold text-ink">Script</h2>
@@ -132,9 +135,10 @@ export default async function LeadDetailPage({
           </section>
         </div>
 
-        <aside className="space-y-4">
+        <aside className="min-w-0 space-y-4">
           <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
             <AutoSubmitSelect
+              key={`stage-${lead.stage}`}
               action={changeStage.bind(null, id)}
               name="stage"
               label="Stage"
@@ -143,6 +147,7 @@ export default async function LeadDetailPage({
             />
             {isFounder && (
               <AutoSubmitSelect
+                key={`owner-${lead.assigned_to ?? ""}`}
                 action={reassignLead.bind(null, id)}
                 name="assigned_to"
                 label="Assigned to"

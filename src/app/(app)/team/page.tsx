@@ -100,7 +100,7 @@ export default async function TeamPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-[1fr_20rem]">
-        <section className="rounded-2xl border border-line bg-surface p-5">
+        <section className="min-w-0 rounded-2xl border border-line bg-surface p-5">
           <h2 className="mb-3 text-[15px] font-semibold text-ink">Latest calls</h2>
           {!recent || recent.length === 0 ? (
             <p className="text-sm text-faint">No calls logged yet.</p>
@@ -111,10 +111,10 @@ export default async function TeamPage() {
                 const tone = outcomeTone(a.outcome);
                 return (
                   <li key={a.id} className="flex items-start gap-3 py-2.5 text-sm">
-                    <span className="w-28 shrink-0 tabular-nums text-faint">{formatWhen(a.created_at)}</span>
+                    <span className="w-24 shrink-0 tabular-nums text-faint sm:w-28">{formatWhen(a.created_at)}</span>
                     <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-xs font-medium ${tone.soft}`}>{outcomeLabel(a.outcome) || "Call"}</span>
                     <div className="min-w-0 flex-1">
-                      <Link href={`/leads/${lead?.id}?from=/team`} className="font-medium text-ink hover:underline">
+                      <Link href={`/leads/${lead?.id}?from=/team`} className="break-words font-medium text-ink hover:underline">
                         {lead?.business_name ?? "Deleted lead"}
                       </Link>
                       <span className="text-faint">{`  ${nameOf.get(a.actor) ?? ""}`}</span>
@@ -127,7 +127,7 @@ export default async function TeamPage() {
           )}
         </section>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <section className="rounded-2xl border border-line bg-surface p-5">
             <h2 className="mb-3 text-[15px] font-semibold text-ink">Upcoming demos</h2>
             {!demos || demos.length === 0 ? (
@@ -142,7 +142,7 @@ export default async function TeamPage() {
                       <Link href={`/leads/${lead?.id}?from=/team`} className="text-ink hover:underline">
                         {lead?.business_name}
                       </Link>
-                      <p className="text-muted">{[lead?.city, lead?.phone].filter(Boolean).join("  ")}</p>
+                      <p className="text-muted">{[lead?.city, lead?.phone].filter(Boolean).join(", ")}</p>
                       {d.note && d.note !== "Demo booked" && <p className="text-faint">{d.note}</p>}
                     </li>
                   );

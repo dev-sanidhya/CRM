@@ -85,7 +85,7 @@ export function LeadPeek({
           <div className="min-w-0">
             <p className="text-lg font-semibold leading-tight text-ink">{lead.business_name}</p>
             <p className="mt-0.5 text-sm text-muted">
-              {[lead.city, lead.phone].filter(Boolean).join("  ")}
+              {[lead.city, lead.phone].filter(Boolean).join(", ")}
             </p>
             {website && (
               <a href={website} target="_blank" rel="noreferrer" className="text-sm text-demo hover:underline">

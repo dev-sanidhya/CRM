@@ -7,6 +7,7 @@ import {
   NOTE_CHIPS,
   SHORT_CALL_SECONDS,
   TONE_CLASSES,
+  isTypingTarget,
   type Outcome,
 } from "@/lib/outcomes";
 import {
@@ -145,7 +146,7 @@ export function OutcomeSheet({
   // in the time step 1 to 7 pick a time, Esc goes back or closes.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      const typing = (e.target as HTMLElement)?.tagName === "INPUT" || (e.target as HTMLElement)?.tagName === "TEXTAREA";
+      const typing = isTypingTarget(e.target);
       if (e.key === "Escape") {
         e.preventDefault();
         if (step) setStep(null);
@@ -189,8 +190,8 @@ export function OutcomeSheet({
           <div className="min-w-0">
             <p className="truncate text-[17px] font-semibold text-ink">{lead.business_name}</p>
             <p className="text-sm text-muted">
-              {[lead.city, lead.phone].filter(Boolean).join("  ")}
-              {lead.attempt_count > 0 && <span className="text-faint">{`  Try ${lead.attempt_count + 1}`}</span>}
+              {[lead.city, lead.phone].filter(Boolean).join(", ")}
+              {lead.attempt_count > 0 && <span className="text-faint">{`, try ${lead.attempt_count + 1}`}</span>}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
