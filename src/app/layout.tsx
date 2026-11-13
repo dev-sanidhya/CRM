@@ -1,15 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Sans } from "next/font/google";
+// One family for everything, bundled with the app (no Google fetch at
+// build or load time). Plex has true tabular figures, so dial counts,
+// times and phone numbers line up and never jitter as they change.
+import "@fontsource-variable/ibm-plex-sans";
 import "./globals.css";
-
-// One family for everything. Plex has true tabular figures, so dial
-// counts, times and phone numbers line up and never jitter as they change.
-const plex = IBM_Plex_Sans({
-  variable: "--font-plex",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "Aperture Calls",
@@ -24,7 +18,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${plex.variable} h-full antialiased`}>
+    <html lang="en" className="h-full antialiased">
       <body className="flex min-h-full flex-col font-sans">{children}</body>
     </html>
   );

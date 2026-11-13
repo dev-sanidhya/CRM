@@ -41,7 +41,7 @@
   --color-demo-soft: var(--demo-soft);
   --color-lost: var(--lost);
   --color-lost-soft: var(--lost-soft);
-  --font-sans: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans Variable", ui-sans-serif, system-ui, sans-serif;
 }
 
 html {
