@@ -1,41 +1,31 @@
-import type { Metadata } from "next";
-import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 
-// Fraunces (display serif) for headings — a premium, editorial character.
-// Inter (body sans) for everything else — clean and highly legible.
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
+// One family for everything. Plex has true tabular figures, so dial
+// counts, times and phone numbers line up and never jitter as they change.
+const plex = IBM_Plex_Sans({
+  variable: "--font-plex",
   subsets: ["latin"],
-  weight: "variable",
-  style: ["normal"],
-  axes: ["opsz"],
-});
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
-  subsets: ["latin"],
-  weight: ["400", "500"],
+  weight: ["400", "500", "600"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Lead CRM",
-  description: "Lead tracking and follow-ups for the agency's cold-call pipeline.",
+  title: "Aperture Calls",
+  description: "Call queue, logging and follow-ups for Aperture's outbound calling.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#eef1f4",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+    <html lang="en" className={`${plex.variable} h-full antialiased`}>
+      <body className="flex min-h-full flex-col font-sans">{children}</body>
     </html>
   );
 }

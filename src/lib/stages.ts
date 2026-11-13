@@ -13,22 +13,22 @@ export type Stage = (typeof STAGES)[number];
 
 export const STAGE_LABELS: Record<Stage, string> = {
   new: "New",
-  attempted: "Attempted",
-  contacted: "Contacted",
-  qualified: "Qualified",
-  meeting_booked: "Meeting Booked",
-  proposal_sent: "Proposal Sent",
+  attempted: "Tried",
+  contacted: "Spoke",
+  qualified: "Interested",
+  meeting_booked: "Demo booked",
+  proposal_sent: "Proposal sent",
   won: "Won",
   lost: "Lost",
 };
 
 export const STAGE_STYLES: Record<Stage, string> = {
-  new: "bg-zinc-100 text-zinc-700",
-  attempted: "bg-amber-50 text-amber-700",
-  contacted: "bg-blue-50 text-blue-700",
-  qualified: "bg-indigo-50 text-indigo-700",
-  meeting_booked: "bg-violet-50 text-violet-700",
-  proposal_sent: "bg-purple-50 text-purple-700",
-  won: "bg-emerald-50 text-emerald-700",
-  lost: "bg-red-50 text-red-700",
+  new: "bg-sunken text-muted",
+  attempted: "bg-sunken text-ink",
+  contacted: "bg-amber-soft text-amber",
+  qualified: "bg-call-soft text-call",
+  meeting_booked: "bg-demo-soft text-demo",
+  proposal_sent: "bg-demo-soft text-demo",
+  won: "bg-call text-white",
+  lost: "bg-lost-soft text-lost",
 };

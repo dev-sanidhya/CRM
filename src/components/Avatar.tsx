@@ -7,8 +7,9 @@ function initials(name: string): string {
 export function Avatar({ name, size = 32 }: { name: string; size?: number }) {
   return (
     <div
-      className="flex shrink-0 items-center justify-center rounded-full bg-accent font-semibold text-accent-foreground"
-      style={{ width: size, height: size, fontSize: size * 0.4 }}
+      className="flex shrink-0 items-center justify-center rounded-full bg-ink font-medium text-white"
+      style={{ width: size, height: size, fontSize: size * 0.38 }}
+      aria-hidden
     >
       {initials(name)}
     </div>
