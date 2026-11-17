@@ -751,7 +751,7 @@ function QueueItem({
               {overdue ? `Overdue, was ${formatWhen(due)}` : later ? `At ${formatTime(due)}` : `Due ${formatTime(due)}`}
             </span>
           )}
-          {row.last_outcome && (
+          {row.last_outcome && !(row.last_outcome === "details_sent" && row.details_sent_at) && (
             <span className={`rounded-md px-1.5 py-px text-xs font-medium ${tone.soft}`}>{outcomeLabel(row.last_outcome)}</span>
           )}
           {row.last_called_at && <span className="text-faint">{formatAgo(row.last_called_at)}</span>}
