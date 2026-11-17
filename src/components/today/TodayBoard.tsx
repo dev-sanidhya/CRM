@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { OUTCOME_META, isConnected, isTypingTarget, outcomeLabel, outcomeTone } from "@/lib/outcomes";
 import { formatAgo, formatTime, formatWhen, startOfIstDay } from "@/lib/time";
 import {
-  DETAILS_MESSAGE,
+  messageFor,
   NEW_PAGE,
   whatsappLink,
   type CalledRow,
@@ -40,11 +40,13 @@ declare global {
 
 const SECTION_TITLES: Record<QueueSection, string> = {
   due: "Due now",
+  deck: "Deck sent, follow up",
   retry: "Try again",
   new: "Not called yet",
 };
 const SECTION_HINTS: Record<QueueSection, string> = {
   due: "Callbacks and follow-ups due today, oldest first",
+  deck: "They asked for the deck or details. Check they saw it",
   retry: "Didn't connect last time",
   new: "Fresh leads, best score first",
 };
@@ -255,7 +257,7 @@ export function TodayBoard({
       // 1. The screen updates in the same frame as the tap.
       if (removed) {
         setRows((list) => list.filter((r) => r.id !== lead.id));
-        setCounts((c) => ({ ...c, [removed.section]: Math.max(0, c[removed.section] - 1) }));
+        setCounts((c) => ({ ...c, [removed.section]: Math.max(0, (c[removed.section] ?? 0) - 1) }));
         setSelected((s) => Math.min(s, Math.max(0, rows.length - 2)));
       }
       setCalled((list) => [
@@ -281,9 +283,11 @@ export function TodayBoard({
         new_dials: s.new_dials + (lead.attempt_count === 0 ? 1 : 0),
         connected: s.connected + (isConnected(input.outcome) ? 1 : 0),
         demos: s.demos + (input.outcome === "demo_booked" ? 1 : 0),
-        follow_ups_done: s.follow_ups_done + (removed?.section === "due" ? 1 : 0),
+        follow_ups_done: s.follow_ups_done + (removed?.section === "due" || removed?.section === "deck" ? 1 : 0),
+        decks: (s.decks ?? 0) + (input.outcome === "details_sent" ? 1 : 0),
+        week_decks: (s.week_decks ?? 0) + (input.outcome === "details_sent" ? 1 : 0),
       }));
-      if (input.sendWhatsapp) window.open(whatsappLink(lead.phone, DETAILS_MESSAGE(lead.business_name)), "_blank");
+      if (input.sendWhatsapp) window.open(whatsappLink(lead.phone, messageFor(input.outcome, lead.business_name)), "_blank");
 
       const label = `${meta.label}: ${lead.business_name}`;
       const t0 = performance.now();
@@ -368,15 +372,15 @@ export function TodayBoard({
     [rows, query],
   );
   const sections = useMemo(() => {
-    const by: Record<QueueSection, QueueRow[]> = { due: [], retry: [], new: [] };
-    for (const r of filtered) by[r.section].push(r);
+    const by: Record<QueueSection, QueueRow[]> = { due: [], deck: [], retry: [], new: [] };
+    for (const r of filtered) (by[r.section] ?? by.due).push(r);
     return by;
   }, [filtered]);
   const visible = useMemo(() => {
     const out: QueueRow[] = [];
-    (["due", "retry", "new"] as QueueSection[]).forEach((s) => {
+    (["due", "deck", "retry", "new"] as QueueSection[]).forEach((s) => {
       const list = sections[s];
-      out.push(...(expanded[s] || query || s === "due" ? list : list.slice(0, COLLAPSED)));
+      out.push(...(expanded[s] || query || s === "due" || s === "deck" ? list : list.slice(0, COLLAPSED)));
     });
     return out;
   }, [sections, expanded, query]);
@@ -441,7 +445,7 @@ export function TodayBoard({
   // ---- render ---------------------------------------------------------------
 
   const sod = startOfIstDay(new Date(now)).getTime();
-  const totalLeft = counts.due + counts.retry + counts.new;
+  const totalLeft = counts.due + (counts.deck ?? 0) + counts.retry + counts.new;
   let index = -1;
 
   return (
@@ -495,10 +499,10 @@ export function TodayBoard({
         </div>
       )}
 
-      {(["due", "retry", "new"] as QueueSection[]).map((s) => {
+      {(["due", "deck", "retry", "new"] as QueueSection[]).map((s) => {
         const list = sections[s];
         if (list.length === 0) return null;
-        const shown = expanded[s] || query || s === "due" ? list : list.slice(0, COLLAPSED);
+        const shown = expanded[s] || query || s === "due" || s === "deck" ? list : list.slice(0, COLLAPSED);
         const total = s === "new" ? counts.new : list.length;
         return (
           <section key={s} className="mt-5">
@@ -751,6 +755,9 @@ function QueueItem({
             <span className={`rounded-md px-1.5 py-px text-xs font-medium ${tone.soft}`}>{outcomeLabel(row.last_outcome)}</span>
           )}
           {row.last_called_at && <span className="text-faint">{formatAgo(row.last_called_at)}</span>}
+          {row.details_sent_at && (
+            <span className="rounded-md bg-deck-soft px-1.5 py-px text-xs font-medium text-deck">{`Deck sent ${formatAgo(row.details_sent_at)}`}</span>
+          )}
           {row.attempt_count > 0 && <span className="text-faint">{`try ${row.attempt_count + 1}`}</span>}
           {(row.due_note || (row.last_note && row.last_note !== outcomeLabel(row.last_outcome))) && (
             <span className="min-w-0 truncate text-muted">{row.due_note || row.last_note}</span>

@@ -27,11 +27,14 @@ export function EodReport({
     const dials = Math.max(stats.dials, called.length);
     const newDials = Math.max(stats.new_dials, called.filter((c) => c.is_first_attempt).length);
     const bookedToday = called.filter((c) => c.outcome === "demo_booked");
+    const decksToday = called.filter((c) => c.outcome === "details_sent");
     const lines = [
       `EOD report: ${name}, ${dateFmt.format(new Date())}`,
       ``,
       `Dials: ${dials} (new ${newDials}, follow-up ${dials - newDials})`,
       `Conversations: ${stats.connected}`,
+      `Decks / details sent: ${decksToday.length || stats.decks || 0}`,
+      ...decksToday.map((c) => `  ${c.business_name}${c.city ? `, ${c.city}` : ""}: follow up ${c.next_at ? formatWhen(c.next_at) : "not set"}`),
       `Demos booked: ${bookedToday.length || stats.demos}`,
       ...bookedToday.map((c) => `  ${c.business_name}${c.city ? `, ${c.city}` : ""}: ${c.next_at ? formatWhen(c.next_at) : "time not set"}`),
       `Follow-ups done: ${stats.follow_ups_done}`,

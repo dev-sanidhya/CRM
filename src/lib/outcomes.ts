@@ -9,6 +9,7 @@ export const OUTCOMES = [
   "wrong_number",
   "callback",
   "interested",
+  "details_sent",
   "demo_booked",
   "not_interested",
   "dnc",
@@ -27,7 +28,7 @@ export const OUTCOME_META: Record<
     key: string;
     /** Needs a time before it can be saved (callback, follow-up, demo). */
     needsTime: boolean;
-    tone: "ink" | "call" | "amber" | "demo" | "lost";
+    tone: "ink" | "call" | "amber" | "demo" | "lost" | "deck";
   }
 > = {
   no_answer: { label: "No answer", short: "No answer", kind: "miss", key: "1", needsTime: false, tone: "ink" },
@@ -36,13 +37,14 @@ export const OUTCOME_META: Record<
   wrong_number: { label: "Wrong number", short: "Wrong number", kind: "close", key: "4", needsTime: false, tone: "lost" },
   callback: { label: "Call back", short: "Callback", kind: "talk", key: "5", needsTime: true, tone: "amber" },
   interested: { label: "Interested", short: "Interested", kind: "talk", key: "6", needsTime: true, tone: "call" },
+  details_sent: { label: "Deck / details sent", short: "Deck sent", kind: "talk", key: "0", needsTime: true, tone: "deck" },
   demo_booked: { label: "Demo booked", short: "Demo booked", kind: "talk", key: "7", needsTime: true, tone: "demo" },
   not_interested: { label: "Not interested", short: "Not interested", kind: "close", key: "8", needsTime: false, tone: "lost" },
   dnc: { label: "Do not call", short: "Do not call", kind: "close", key: "9", needsTime: false, tone: "lost" },
 };
 
 export const MISS_OUTCOMES = OUTCOMES.filter((o) => OUTCOME_META[o].kind === "miss");
-export const TALK_OUTCOMES: Outcome[] = ["callback", "interested", "demo_booked", "not_interested", "dnc"];
+export const TALK_OUTCOMES: Outcome[] = ["callback", "interested", "details_sent", "demo_booked", "not_interested", "dnc"];
 
 export function isConnected(o: Outcome | null | undefined): boolean {
   return !!o && o !== "no_answer" && o !== "busy" && o !== "switched_off" && o !== "wrong_number";
@@ -58,7 +60,6 @@ export function outcomeLabel(o: string | null | undefined): string {
 export const NOTE_CHIPS = [
   "Owner not available",
   "Asked for pricing",
-  "Send portfolio on WhatsApp",
   "Already has an agency",
   "Busy, call later",
   "Budget concern",
@@ -75,6 +76,7 @@ export const TONE_CLASSES: Record<string, { solid: string; soft: string; text: s
   amber: { solid: "bg-amber text-white", soft: "bg-amber-soft text-amber", text: "text-amber" },
   demo: { solid: "bg-demo text-white", soft: "bg-demo-soft text-demo", text: "text-demo" },
   lost: { solid: "bg-lost text-white", soft: "bg-lost-soft text-lost", text: "text-lost" },
+  deck: { solid: "bg-deck text-white", soft: "bg-deck-soft text-deck", text: "text-deck" },
 };
 
 export function outcomeTone(o: string | null | undefined) {

@@ -39,6 +39,7 @@ export function LeadPeek({
   const [history, setHistory] = useState<HistoryItem[] | null>(null);
   const [extra, setExtra] = useState<Record<string, string> | null>(lead.extra_fields ?? null);
   const [website, setWebsite] = useState<string | null>(lead.website ?? null);
+  const [deckAt, setDeckAt] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -51,13 +52,14 @@ export function LeadPeek({
         .neq("type", "status_change")
         .order("created_at", { ascending: false })
         .limit(12),
-      sb.from("leads").select("extra_fields, website").eq("id", lead.id).maybeSingle(),
+      sb.from("leads").select("extra_fields, website, details_sent_at").eq("id", lead.id).maybeSingle(),
     ]).then(([h, l]) => {
       if (!alive) return;
       setHistory((h.data as HistoryItem[]) ?? []);
       if (l.data) {
         setExtra((l.data.extra_fields as Record<string, string>) ?? null);
         setWebsite(l.data.website ?? null);
+        setDeckAt(l.data.details_sent_at ?? null);
       }
     });
     return () => {
@@ -122,6 +124,11 @@ export function LeadPeek({
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
+          {deckAt && (
+            <p className="mb-3 inline-block rounded-lg bg-deck-soft px-2.5 py-1 text-sm font-medium text-deck">
+              Deck sent {formatWhen(deckAt)}
+            </p>
+          )}
           {lead.due_at && (
             <p className="mb-4 rounded-xl bg-amber-soft px-3.5 py-2.5 text-sm text-amber">
               Due {formatWhen(lead.due_at)}

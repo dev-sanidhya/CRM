@@ -85,6 +85,7 @@ export default async function TeamPage() {
               </div>
               <dl className="grid grid-cols-3 gap-y-3 text-sm">
                 <Metric label="Spoke today" value={s.connected} />
+                <Metric label="Decks sent today" value={s.decks ?? 0} />
                 <Metric label="Demos today" value={s.demos} />
                 <Metric label="Follow-ups done" value={s.follow_ups_done} />
                 <Metric label="Dials this week" value={s.week_dials} />
@@ -93,6 +94,8 @@ export default async function TeamPage() {
                 <Metric label="Due tomorrow" value={s.due_tomorrow} />
                 <Metric label="All-time dials" value={s.all_time_dials} />
                 <Metric label="All-time demos" value={s.all_time_demos} />
+                <Metric label="Decks this week" value={s.week_decks ?? 0} />
+                <Metric label="Deck follow-ups open" value={s.decks_open ?? 0} />
               </dl>
             </section>
           );

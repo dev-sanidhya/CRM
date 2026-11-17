@@ -49,6 +49,16 @@ export async function reassignLead(leadId: string, formData: FormData) {
   revalidatePath(`/leads/${leadId}`);
 }
 
+/** Mark or unmark "deck / details sent" by hand (e.g. sent by email later). */
+export async function setDeckSent(leadId: string, sent: boolean) {
+  const supabase = await createClient();
+  await supabase
+    .from("leads")
+    .update({ details_sent_at: sent ? new Date().toISOString() : null })
+    .eq("id", leadId);
+  revalidatePath(`/leads/${leadId}`);
+}
+
 export async function completeReminder(leadId: string, reminderId: string) {
   const supabase = await createClient();
   await supabase

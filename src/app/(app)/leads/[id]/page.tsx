@@ -10,7 +10,7 @@ import { scriptLines } from "@/lib/queue";
 import { LeadCallActions } from "@/components/lead/LeadCallActions";
 import { HistoryList, type HistoryEntry } from "@/components/lead/HistoryList";
 import { AutoSubmitSelect } from "@/components/lead/AutoSubmitSelect";
-import { addNote, changeStage, completeReminder, reassignLead } from "./actions";
+import { addNote, changeStage, completeReminder, reassignLead, setDeckSent } from "./actions";
 
 export default async function LeadDetailPage({
   params,
@@ -68,6 +68,9 @@ export default async function LeadDetailPage({
         <div className="flex flex-wrap items-center gap-2.5">
           <h1 className="text-2xl font-semibold tracking-tight text-ink">{lead.business_name}</h1>
           <StagePill stage={lead.stage as Stage} />
+          {lead.details_sent_at && (
+            <span className="rounded-md bg-deck-soft px-2 py-0.5 text-xs font-medium text-deck">Deck sent {formatWhen(lead.details_sent_at)}</span>
+          )}
         </div>
         <p className="mt-1 text-sm text-muted">
           {[lead.city, lead.phone].filter(Boolean).join(", ")}
@@ -145,6 +148,17 @@ export default async function LeadDetailPage({
               defaultValue={lead.stage}
               options={STAGES.map((s) => ({ value: s, label: STAGE_LABELS[s] }))}
             />
+            <form action={setDeckSent.bind(null, id, !lead.details_sent_at)}>
+              <span className="mb-1 block text-xs text-faint">Deck / details</span>
+              <button
+                type="submit"
+                className={`w-full rounded-xl px-3 py-2 text-left text-sm font-medium ${
+                  lead.details_sent_at ? "bg-deck-soft text-deck" : "border border-line text-ink hover:border-ink"
+                }`}
+              >
+                {lead.details_sent_at ? "Sent. Tap to unmark" : "Mark as sent"}
+              </button>
+            </form>
             {isFounder && (
               <AutoSubmitSelect
                 key={`owner-${lead.assigned_to ?? ""}`}

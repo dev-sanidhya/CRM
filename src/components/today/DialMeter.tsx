@@ -10,6 +10,7 @@ const DAY_END = 19 * 60; // 19:00 IST
 
 function tickClass(o: CalledRow["outcome"]) {
   if (o === "demo_booked") return "bg-demo";
+  if (o === "details_sent") return "bg-deck";
   if (!o) return "bg-line-strong";
   if (o === "connected") return "bg-call";
   const kind = OUTCOME_META[o as Outcome]?.kind;
@@ -20,7 +21,8 @@ function tickClass(o: CalledRow["outcome"]) {
 
 /**
  * The day at a glance: one tick per dial, filled in the order they were
- * made. Grey = didn't connect, green = spoke, blue = demo, red = closed.
+ * made. Grey = didn't connect, green = spoke, purple = deck sent,
+ * blue = demo, red = closed.
  */
 export function DialMeter({ called, stats }: { called: CalledRow[]; stats: DayStats }) {
   const [minutes, setMinutes] = useState<number | null>(null);
@@ -60,6 +62,7 @@ export function DialMeter({ called, stats }: { called: CalledRow[]; stats: DaySt
         </p>
         <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
           <Stat label="spoke" value={stats.connected} tone="text-call" />
+          <Stat label="decks sent" value={stats.decks ?? 0} tone="text-deck" />
           <Stat label="demos" value={stats.demos} tone="text-demo" />
           <Stat label="follow-ups done" value={stats.follow_ups_done} />
           <Stat label="this week" value={stats.week_dials} />

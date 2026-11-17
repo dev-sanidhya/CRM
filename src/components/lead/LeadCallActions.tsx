@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { OUTCOME_META } from "@/lib/outcomes";
-import { DETAILS_MESSAGE, whatsappLink } from "@/lib/queue";
+import { DETAILS_MESSAGE, messageFor, whatsappLink } from "@/lib/queue";
 import { OutcomeSheet, type ActiveCall, type LogInput, type SheetLead } from "@/components/today/OutcomeSheet";
 
 /** Call / Log / WhatsApp for one lead, with the same sheet as Today. */
@@ -38,7 +38,7 @@ export function LeadCallActions({ lead }: { lead: SheetLead }) {
       setOpen(false);
       const c = call;
       setCall(null);
-      if (input.sendWhatsapp) window.open(whatsappLink(lead.phone, DETAILS_MESSAGE(lead.business_name)), "_blank");
+      if (input.sendWhatsapp) window.open(whatsappLink(lead.phone, messageFor(input.outcome, lead.business_name)), "_blank");
       const t0 = performance.now();
       const { error } = await createClient().rpc("log_call", {
         p_lead_id: lead.id,

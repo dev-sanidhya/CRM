@@ -1,6 +1,6 @@
 import type { Outcome } from "@/lib/outcomes";
 
-export type QueueSection = "due" | "retry" | "new";
+export type QueueSection = "due" | "deck" | "retry" | "new";
 
 export type QueueRow = {
   id: string;
@@ -14,6 +14,7 @@ export type QueueRow = {
   last_outcome: string | null;
   last_note: string | null;
   extra_fields: Record<string, string> | null;
+  details_sent_at?: string | null;
   reminder_id: string | null;
   due_at: string | null;
   due_note: string | null;
@@ -49,7 +50,7 @@ export type DemoRow = {
 
 export type QueueData = {
   rows: QueueRow[];
-  counts: { due: number; retry: number; new: number; later: number };
+  counts: { due: number; deck?: number; retry: number; new: number; later: number };
   called: CalledRow[];
   demos: DemoRow[];
 };
@@ -58,8 +59,11 @@ export type DayStats = {
   dials: number;
   new_dials: number;
   connected: number;
+  decks?: number;
   demos: number;
   week_dials: number;
+  week_decks?: number;
+  decks_open?: number;
   week_connected: number;
   follow_ups_done: number;
   overdue: number;
@@ -72,6 +76,7 @@ export const EMPTY_STATS: DayStats = {
   dials: 0,
   new_dials: 0,
   connected: 0,
+  decks: 0,
   demos: 0,
   week_dials: 0,
   week_connected: 0,
@@ -109,6 +114,14 @@ export function scriptLines(extra: Record<string, string> | null | undefined) {
 export function whatsappLink(phone: string, text: string): string {
   const digits = phone.replace(/\D/g, "");
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
+}
+
+/** Sent after "Deck / details sent": she attaches the deck PDF in WhatsApp. */
+export const DECK_MESSAGE = (business: string) =>
+  `Hi, this is from Aperture. As promised on the call, sharing our deck and details for ${business} here. You can also see our work at https://www.aperturecm.in. I'll check back in a couple of days to answer any questions.`;
+
+export function messageFor(outcome: string, business: string) {
+  return outcome === "details_sent" ? DECK_MESSAGE(business) : DETAILS_MESSAGE(business);
 }
 
 export const DETAILS_MESSAGE = (business: string) =>

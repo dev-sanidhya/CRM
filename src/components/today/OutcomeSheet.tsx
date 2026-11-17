@@ -46,7 +46,7 @@ export type LogInput = {
 };
 
 const MISS_ROW: Outcome[] = ["no_answer", "busy", "switched_off", "wrong_number"];
-const TALK_ROW: Outcome[] = ["callback", "interested", "demo_booked", "not_interested", "dnc"];
+const TALK_ROW: Outcome[] = ["callback", "interested", "details_sent", "demo_booked", "not_interested", "dnc"];
 
 export function OutcomeSheet({
   lead,
@@ -97,7 +97,7 @@ export function OutcomeSheet({
       return;
     }
     setStep(outcome);
-    if (outcome === "interested" && !custom) setCustom(toIstInputValue(defaultFollowUp()));
+    if ((outcome === "interested" || outcome === "details_sent") && !custom) setCustom(toIstInputValue(defaultFollowUp()));
   }
 
   function saveWith(at: Date) {
@@ -108,7 +108,7 @@ export function OutcomeSheet({
       nextAt: at,
       source: transcript ? "voice" : "typed",
       transcript,
-      sendWhatsapp: step === "interested" && sendWhatsapp,
+      sendWhatsapp: (step === "interested" || step === "details_sent") && sendWhatsapp,
     });
   }
 
@@ -249,7 +249,7 @@ export function OutcomeSheet({
                 mic={speech.supported ? { listening: speech.listening, busy: voiceBusy, onToggle: toggleMic, live: speech.transcript } : null}
               />
               {suggested && (
-                <p className="mt-3 text-xs text-faint">Short call. Press Enter for No answer, or 1 to 9 for any result.</p>
+                <p className="mt-3 text-xs text-faint">Short call. Press Enter for No answer, or 0 to 9 for any result.</p>
               )}
             </>
           )}
@@ -260,7 +260,13 @@ export function OutcomeSheet({
                 Back
               </button>
               <p className="mb-3 text-[15px] font-semibold text-ink">
-                {step === "demo_booked" ? "When is the demo?" : step === "interested" ? "When to follow up?" : "When to call back?"}
+                {step === "demo_booked"
+                  ? "When is the demo?"
+                  : step === "details_sent"
+                    ? "When to follow up on the deck?"
+                    : step === "interested"
+                      ? "When to follow up?"
+                      : "When to call back?"}
               </p>
 
               {step !== "demo_booked" && (
@@ -289,10 +295,10 @@ export function OutcomeSheet({
                 {voiceError && <p className="mt-1.5 text-xs text-amber">{voiceError}</p>}
               </div>
 
-              {step === "interested" && (
+              {(step === "interested" || step === "details_sent") && (
                 <label className="mb-4 flex items-center gap-2 text-sm text-ink">
                   <input type="checkbox" checked={sendWhatsapp} onChange={(e) => setSendWhatsapp(e.target.checked)} className="h-4 w-4 accent-[var(--call)]" />
-                  Open WhatsApp with the details message after saving
+                  {step === "details_sent" ? "Open WhatsApp with the deck message (attach the PDF there)" : "Open WhatsApp with the details message after saving"}
                 </label>
               )}
 

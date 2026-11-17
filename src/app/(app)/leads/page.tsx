@@ -11,6 +11,7 @@ const PAGE_SIZE = 50;
 
 const VIEWS = [
   { key: "open", label: "Open" },
+  { key: "deck", label: "Deck sent" },
   { key: "called", label: "Called" },
   { key: "fresh", label: "Not called" },
   { key: "demos", label: "Demos" },
@@ -33,7 +34,7 @@ export default async function LeadsPage({
 
   let query = supabase
     .from("leads")
-    .select("id, business_name, phone, city, stage, attempt_count, last_called_at, last_outcome, last_note, profiles:assigned_to(name)", {
+    .select("id, business_name, phone, city, stage, attempt_count, last_called_at, last_outcome, last_note, details_sent_at, profiles:assigned_to(name)", {
       count: "estimated",
     })
     .range(from, from + PAGE_SIZE - 1);
@@ -42,10 +43,13 @@ export default async function LeadsPage({
   if (view === "called") query = query.gt("attempt_count", 0);
   if (view === "fresh") query = query.eq("attempt_count", 0).is("closed_at", null);
   if (view === "demos") query = query.in("stage", ["meeting_booked", "proposal_sent", "won"]);
+  if (view === "deck") query = query.not("details_sent_at", "is", null);
   if (view === "closed") query = query.or("closed_at.not.is.null,stage.in.(won,lost)");
 
   query =
-    view === "called" || view === "closed"
+    view === "deck"
+      ? query.order("details_sent_at", { ascending: false })
+      : view === "called" || view === "closed"
       ? query.order("last_called_at", { ascending: false, nullsFirst: false })
       : query.order("updated_at", { ascending: false });
 
@@ -125,7 +129,14 @@ export default async function LeadsPage({
                   </Link>
                   <span className="hidden truncate text-sm text-muted md:block">{lead.city ?? ""}</span>
                   <span className="justify-self-end md:justify-self-start">
-                    <StagePill stage={lead.stage as Stage} />
+                    <span className="flex flex-wrap items-center gap-1">
+                      <StagePill stage={lead.stage as Stage} />
+                      {lead.details_sent_at && (
+                        <span className="rounded-md bg-deck-soft px-1.5 py-0.5 text-xs font-medium text-deck" title={`Deck sent ${formatAgo(lead.details_sent_at)}`}>
+                          Deck
+                        </span>
+                      )}
+                    </span>
                   </span>
                   <span className="col-span-2 flex min-w-0 items-center gap-2 text-sm md:col-span-1">
                     {lead.last_outcome ? (
