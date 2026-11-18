@@ -1,0 +1,20 @@
+{
+  "name": "aperture-crm-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Telegram analyst for the Aperture CRM: daily updates, questions, conversion signals. Read-only on CRM data.",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "dev": "node --watch --env-file-if-exists=.env src/server.js",
+    "ask": "node --env-file-if-exists=.env scripts/ask.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.319",
+    "postgres": "^3.4.5",
+    "zod": "^4.0.0"
+  }
+}

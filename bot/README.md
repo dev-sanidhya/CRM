@@ -1,0 +1,26 @@
+# Aperture CRM bot (Telegram)
+
+A Telegram analyst for the CRM, built on the Claude Agent SDK (same pattern as Maddie PA).
+Founders ask it anything about the CRM; it sends a daily update at 7:00 pm IST (Mon to Sat).
+
+- Reads the CRM through the Postgres role `crm_bot`: SELECT only, read-only transactions, 20 s timeout.
+  It can write only its own memory (`bot_state`, `bot_messages`).
+- Tools: `day_overview`, `day_activity`, `lead_signals`, `find_lead`, `run_sql` (read-only), `get_time`.
+- Knowledge: `agent/AGENT.md` (business, schema, outcomes, conversion signals, daily update format). Edit freely.
+- Access: a founder sends `/start <BOT_LINK_CODE>` once. Up to 4 linked chats. Commands: `/report`, `/reset`, `/help`.
+
+## Free hosting
+- 7 pm update: GitHub Actions (`.github/workflows/daily-update.yml`), free for this public repo.
+  Repo secrets: `CLAUDE_CODE_OAUTH_TOKEN`, `TELEGRAM_BOT_TOKEN`, `BOT_DB_PASSWORD`, `BOT_LINK_CODE`.
+- Chat: Render free web service (`render.yaml`, root `bot/`, `BOT_MODE=webhook`). Sleeps when idle; the first
+  message after a quiet spell takes about a minute while it wakes. Peak memory per answer measured at ~360 MB.
+- Or on any always-on machine: `npm start` with `BOT_MODE=polling`.
+
+## Local
+```bash
+cp .env.example .env   # fill in
+npm install
+npm run ask -- "How did yesterday go?"
+npm run ask -- --report
+npm start
+```

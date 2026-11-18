@@ -1,0 +1,41 @@
+# Sends the CRM daily update to the founders on Telegram at 7:00 pm IST, Monday to Saturday.
+# GitHub cron is UTC and can start a few minutes late: this starts at 18:45 IST and the script
+# waits for 19:00. Runs free on GitHub's servers; the laptop can be off.
+name: Daily CRM update
+
+on:
+  schedule:
+    - cron: "15 13 * * 1-6"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Send even if today's update already went out"
+        type: boolean
+        default: false
+
+concurrency:
+  group: daily-update
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: bot
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: bot/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Send the update
+        run: node scripts/digest.js ${{ inputs.force && '--force' || '' }}
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          BOT_DB_PASSWORD: ${{ secrets.BOT_DB_PASSWORD }}
+          BOT_LINK_CODE: ${{ secrets.BOT_LINK_CODE }}

@@ -43,3 +43,8 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# Telegram CRM bot (separate Node app in bot/)
+bot/node_modules
+bot/.env
+!bot/.env.example

@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Separate Node app (Telegram bot), not part of the Next.js build.
+    "bot/**",
   ]),
 ]);
 

@@ -1,0 +1,29 @@
+# Render free web service for the Telegram CRM bot (chat). It sleeps when idle; Telegram's webhook
+# wakes it. The 7 pm update is sent by GitHub Actions instead (.github/workflows/daily-update.yml).
+services:
+  - type: web
+    name: aperture-crm-bot
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: bot
+    buildCommand: npm ci --no-audit --no-fund
+    startCommand: node src/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: BOT_MODE
+        value: webhook
+      - key: NODE_VERSION
+        value: "22"
+      - key: CLAUDE_CODE_OAUTH_TOKEN
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: BOT_DB_PASSWORD
+        sync: false
+      - key: BOT_LINK_CODE
+        sync: false
+      - key: BOT_WEBHOOK_SECRET
+        sync: false
+      - key: PUBLIC_URL
+        sync: false
