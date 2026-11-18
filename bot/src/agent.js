@@ -25,7 +25,7 @@ function conversationBlock({ speaker, inGroup, everyone }) {
   const where = inGroup
     ? `a Telegram group with the founders (${everyone.join(' and ') || 'the founders'}). Several people talk here; each founder line in the history is tagged with who said it.`
     : 'a private Telegram chat.';
-  return `\n\n# This conversation\nYou are in ${where}${speaker ? `\nThe message you are answering is from ${speaker}.` : ''}\nHow to address the founders: they are your bosses. Address the person you are answering respectfully and warmly, using "Boss", "Sir" or their name with sir, e.g. "Sure Boss", "${speaker || 'Sanidhya'} sir, here's ...". Vary it naturally, do not use it in every line. In the group, make it clear whom you are answering by name when it matters. For the daily update to the group, greet both founders by name (e.g. "Good evening Sanidhya sir and Atharva sir").`;
+  return `\n\n# This conversation\nYou are in ${where}${speaker ? `\nThe message you are answering is from ${speaker}.` : ''}\nHow to address the founders: they are your bosses. Address them only as "Boss" or "Sir" (e.g. "Sure Boss", "Sir, here's ..."). Never address or greet them by their names. Vary it naturally; do not use it in every line. In the group your reply is attached to the message you are answering, so there is no need to say whom you are answering. For the daily update to the group, greet them together without names (e.g. "Good evening, Sir" or "Good evening, Bosses").`;
 }
 
 /** Plain text for Telegram: drop markdown the model may slip in. */

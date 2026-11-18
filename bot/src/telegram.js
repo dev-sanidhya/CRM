@@ -111,7 +111,7 @@ export async function handleUpdate(update) {
   if (inGroup && Array.isArray(msg.new_chat_members) && msg.new_chat_members.some((u) => u.id === bot.id)) {
     if (!person) return send(chat.id, 'I only work for the Aperture founders. A founder needs to link first: message me privately with /start and your code.');
     await enableGroup(chat, person);
-    return send(chat.id, `Thanks ${person.name} sir. I'm set up for this group: the daily update will come here at 7:00 pm IST.\n\n${help(bot.username, true)}`);
+    return send(chat.id, `Thank you, Sir. I'm set up for this group: the daily update will come here at 7:00 pm IST.\n\n${help(bot.username, true)}`);
   }
 
   // Commands may be addressed as /cmd@BotName in groups.
@@ -124,9 +124,9 @@ export async function handleUpdate(update) {
       const linked = await link(msg, arg);
       if (!linked) return send(chat.id, 'That code is not right. Check it and send /start followed by your code.');
       if (inGroup) await enableGroup(chat, linked);
-      return send(chat.id, `Linked. Welcome, ${linked.name} sir.\n\n${help(bot.username, inGroup)}`, inGroup ? msg.message_id : null);
+      return send(chat.id, `Linked. Welcome, Sir.\n\n${help(bot.username, inGroup)}`, inGroup ? msg.message_id : null);
     }
-    if (person) return send(chat.id, `You're linked, ${person.name} sir.\n\n${help(bot.username, inGroup)}`);
+    if (person) return send(chat.id, `You're already linked, Sir.\n\n${help(bot.username, inGroup)}`);
     return inGroup ? null : send(chat.id, 'This bot is private. Send /start followed by your personal code.');
   }
 
@@ -142,7 +142,7 @@ export async function handleUpdate(update) {
   }
 
   if (cmd === 'help') return send(chat.id, help(bot.username, inGroup));
-  if (cmd === 'reset') { await clearMessages(chat.id); return send(chat.id, `Done, ${person.name} sir. Starting fresh in this chat.`); }
+  if (cmd === 'reset') { await clearMessages(chat.id); return send(chat.id, 'Done, Boss. Starting fresh in this chat.'); }
 
   // In a group, only answer when spoken to: a mention, a reply to me, or a command.
   const mentioned = raw.toLowerCase().includes(`@${bot.username.toLowerCase()}`);
@@ -150,7 +150,7 @@ export async function handleUpdate(update) {
   if (inGroup && !mentioned && !repliedToMe && cmd !== 'report' && cmd !== 'ask') return;
 
   const text = (cmd === 'ask' ? arg : raw).replace(new RegExp(`@${bot.username}`, 'ig'), '').trim();
-  if (cmd !== 'report' && !text) return send(chat.id, `Yes ${person.name} sir? Ask me anything about the CRM.`, inGroup ? msg.message_id : null);
+  if (cmd !== 'report' && !text) return send(chat.id, 'Yes Sir? Ask me anything about the CRM.', inGroup ? msg.message_id : null);
 
   if (busy.get(chat.id)) return send(chat.id, 'Still working on the last question, one moment.', inGroup ? msg.message_id : null);
   busy.set(chat.id, true);
@@ -169,7 +169,7 @@ export async function handleUpdate(update) {
   } catch (e) {
     stop();
     console.error('agent error', e);
-    await send(chat.id, `Sorry ${person.name} sir, I hit a problem reading the CRM. Please ask again in a moment.`, inGroup ? msg.message_id : null);
+    await send(chat.id, `Sorry Sir, I hit a problem reading the CRM. Please ask again in a moment.`, inGroup ? msg.message_id : null);
   } finally {
     busy.set(chat.id, false);
   }
