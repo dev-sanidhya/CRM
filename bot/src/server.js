@@ -53,11 +53,17 @@ server.listen(PORT, async () => {
     startPolling();
   }
   if (process.env.BOT_SCHEDULER === '1') {
+    // Checks every minute from 7 pm IST; sends once per day (a failed send retries next minute).
+    let running = false;
     setInterval(() => {
       const p = istParts();
-      if (p.weekday !== 'Sun' && p.hour >= DIGEST_HOUR && p.hour < 23) {
-        sendDailyUpdate().then((r) => { if (!r.skipped) console.log('digest', r); }).catch((e) => console.error('digest failed', e));
-      }
+      if (running || p.hour < DIGEST_HOUR || p.hour >= 23) return;
+      running = true;
+      sendDailyUpdate()
+        .then((r) => { if (!r.skipped) console.log('daily update sent', r); })
+        .catch((e) => console.error('daily update failed, will retry', e))
+        .finally(() => { running = false; });
     }, 60000);
+    console.log(`daily update scheduler on: ${DIGEST_HOUR}:00 IST`);
   }
 });

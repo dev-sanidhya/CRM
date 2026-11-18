@@ -81,4 +81,6 @@ export async function runAgent({ task, chatId = null, speaker = null, inGroup = 
   return { text: plain(final), ms: Date.now() - t0, cost };
 }
 
+export const SUNDAY_TASK = 'Write this Sunday\'s update for the founders now, following the "Sunday update" section: only upcoming follow-ups, demos and important items for the coming days. Use the CRM tools (run_sql for the next days, lead_signals, day_overview for context). Reply with only the update text.';
+
 export const DIGEST_TASK = 'Write today\'s daily update for the founders now, following the "Daily update" section. Use day_overview for today first, then lead_signals and day_activity as needed. Reply with only the update text.';

@@ -38,6 +38,19 @@ export async function setState(key, value) {
     on conflict (key) do update set value = excluded.value, updated_at = now()`);
 }
 
+/**
+ * Atomically claim a key for a value (e.g. "today's update is mine to send"). Returns true only
+ * for the one caller that changed it, so two senders firing together never both send.
+ */
+export async function claimState(key, value) {
+  const rows = await sql.begin('read write', (tx) => tx`
+    insert into bot_state (key, value, updated_at) values (${key}, ${tx.json(value)}, now())
+    on conflict (key) do update set value = excluded.value, updated_at = now()
+      where bot_state.value is distinct from excluded.value
+    returning key`);
+  return rows.length === 1;
+}
+
 export async function saveMessage(chatId, role, text) {
   await sql.begin('read write', (tx) => tx`insert into bot_messages (chat_id, role, text) values (${chatId}, ${role}, ${text})`);
 }

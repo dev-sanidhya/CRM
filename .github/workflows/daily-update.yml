@@ -1,11 +1,11 @@
-# Sends the CRM daily update to the founders on Telegram at 7:00 pm IST, Monday to Saturday.
-# GitHub cron is UTC and can start a few minutes late: this starts at 18:45 IST and the script
-# waits for 19:00. Runs free on GitHub's servers; the laptop can be off.
+# Sends the CRM update to the founders on Telegram at 7:00 pm IST every day (Sunday: a short look-ahead).
+# Backup sender: the bot on Render sends at 19:00 IST. This runs at about 19:10 IST and sends only
+# if today's update has not gone out (the "sent today" check is atomic, so never twice).
 name: Daily CRM update
 
 on:
   schedule:
-    - cron: "15 13 * * 1-6"
+    - cron: "40 13 * * *"
   workflow_dispatch:
     inputs:
       force:
