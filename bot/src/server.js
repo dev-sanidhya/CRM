@@ -13,7 +13,7 @@ const MODE = process.env.BOT_MODE || 'polling';
 const SECRET = process.env.BOT_WEBHOOK_SECRET || '';
 const DIGEST_HOUR = Number(process.env.BOT_DIGEST_HOUR || 19);
 
-for (const k of ['TELEGRAM_BOT_TOKEN', 'BOT_DB_PASSWORD', 'BOT_LINK_CODE']) {
+for (const k of ['TELEGRAM_BOT_TOKEN', 'BOT_DB_PASSWORD', 'BOT_FOUNDERS']) {
   if (!process.env[k]) console.warn(`warning: ${k} is not set`);
 }
 if (!process.env.CLAUDE_CODE_OAUTH_TOKEN && !process.env.ANTHROPIC_API_KEY) console.warn('warning: no Claude credentials (CLAUDE_CODE_OAUTH_TOKEN)');

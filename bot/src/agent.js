@@ -21,21 +21,29 @@ async function peopleBlock() {
   return `# People (profiles)\n${people.map((p) => `- ${p.name} (${p.role}) id=${p.id}`).join('\n')}\n\n# Lists\n${lists.map((l) => `- ${l.key} = ${l.label}`).join('\n')}`;
 }
 
+function conversationBlock({ speaker, inGroup, everyone }) {
+  const where = inGroup
+    ? `a Telegram group with the founders (${everyone.join(' and ') || 'the founders'}). Several people talk here; each founder line in the history is tagged with who said it.`
+    : 'a private Telegram chat.';
+  return `\n\n# This conversation\nYou are in ${where}${speaker ? `\nThe message you are answering is from ${speaker}.` : ''}\nHow to address the founders: they are your bosses. Address the person you are answering respectfully and warmly, using "Boss", "Sir" or their name with sir, e.g. "Sure Boss", "${speaker || 'Sanidhya'} sir, here's ...". Vary it naturally, do not use it in every line. In the group, make it clear whom you are answering by name when it matters. For the daily update to the group, greet both founders by name (e.g. "Good evening Sanidhya sir and Atharva sir").`;
+}
+
 /** Plain text for Telegram: drop markdown the model may slip in. */
 export const plain = (t) => String(t || '')
   .replace(/\*\*(.+?)\*\*/gs, '$1').replace(/__(.+?)__/gs, '$1').replace(/`+/g, '')
   .replace(/^#{1,6}\s+/gm, '').replace(/^\s*[*•]\s+/gm, '- ').replace(/—/g, ' - ').replace(/–/g, '-').trim();
 
-export async function runAgent({ task, chatId = null, founderName = null }) {
+export async function runAgent({ task, chatId = null, speaker = null, inGroup = false, everyone = [] }) {
   const tools = crmTools();
   const server = createSdkMcpServer({ name: 'crm', version: '1.0.0', tools });
   const system = [AGENT_MD, '\n\n', clockBlock(), '\n\n', await peopleBlock(),
-    founderName ? `\n\n# This conversation\nYou are talking to ${founderName}, a co-founder, in a private Telegram chat.` : ''].join('');
+    conversationBlock({ speaker, inGroup, everyone })].join('');
 
   let history = '';
   if (chatId) {
     const rows = await recentMessages(chatId, 16);
-    history = rows.map((r) => `${r.role === 'user' ? 'FOUNDER' : 'YOU'}: ${r.text}`).join('\n');
+    // Founder messages are stored as "[Name] text", so the speaker of each line is known.
+    history = rows.map((r) => (r.role === 'user' ? r.text : `[You] ${r.text}`)).join('\n');
   }
   const prompt = history
     ? `Recent conversation (oldest first):\n${history}\n\n${task}`

@@ -7,11 +7,15 @@ Founders ask it anything about the CRM; it sends a daily update at 7:00 pm IST (
   It can write only its own memory (`bot_state`, `bot_messages`).
 - Tools: `day_overview`, `day_activity`, `lead_signals`, `find_lead`, `run_sql` (read-only), `get_time`.
 - Knowledge: `agent/AGENT.md` (business, schema, outcomes, conversion signals, daily update format). Edit freely.
-- Access: a founder sends `/start <BOT_LINK_CODE>` once. Up to 4 linked chats. Commands: `/report`, `/reset`, `/help`.
+- Access: each founder has their own code (`BOT_FOUNDERS`) and sends `/start <code>` once; the bot then knows who is
+  speaking in private chats and groups and addresses them as Boss / Sir / name. Add the bot to the founders' group (a
+  linked founder must add it): it answers when @mentioned or replied to, ignores everyone else, and the 7 pm update goes
+  to the group. Turn off privacy mode in @BotFather (/setprivacy) or make the bot a group admin so it sees @mentions.
+  Commands: `/report`, `/reset`, `/help`.
 
 ## Free hosting
 - 7 pm update: GitHub Actions (`.github/workflows/daily-update.yml`), free for this public repo.
-  Repo secrets: `CLAUDE_CODE_OAUTH_TOKEN`, `TELEGRAM_BOT_TOKEN`, `BOT_DB_PASSWORD`, `BOT_LINK_CODE`.
+  Repo secrets: `CLAUDE_CODE_OAUTH_TOKEN`, `TELEGRAM_BOT_TOKEN`, `BOT_DB_PASSWORD`, `BOT_FOUNDERS`.
 - Chat: Render free web service (`render.yaml`, root `bot/`, `BOT_MODE=webhook`). Kept awake by a Supabase pg_cron job
   that pings `/health` every 5 minutes (`supabase/migrations/20261119140000_keep_bot_awake.sql`); without it, the first
   message after a quiet spell takes about a minute while it wakes. Peak memory per answer measured at ~360 MB.

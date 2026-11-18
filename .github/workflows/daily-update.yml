@@ -38,4 +38,4 @@ jobs:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           BOT_DB_PASSWORD: ${{ secrets.BOT_DB_PASSWORD }}
-          BOT_LINK_CODE: ${{ secrets.BOT_LINK_CODE }}
+          BOT_FOUNDERS: ${{ secrets.BOT_FOUNDERS }}
