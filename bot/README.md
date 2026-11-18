@@ -12,7 +12,8 @@ Founders ask it anything about the CRM; it sends a daily update at 7:00 pm IST (
 ## Free hosting
 - 7 pm update: GitHub Actions (`.github/workflows/daily-update.yml`), free for this public repo.
   Repo secrets: `CLAUDE_CODE_OAUTH_TOKEN`, `TELEGRAM_BOT_TOKEN`, `BOT_DB_PASSWORD`, `BOT_LINK_CODE`.
-- Chat: Render free web service (`render.yaml`, root `bot/`, `BOT_MODE=webhook`). Sleeps when idle; the first
+- Chat: Render free web service (`render.yaml`, root `bot/`, `BOT_MODE=webhook`). Kept awake by a Supabase pg_cron job
+  that pings `/health` every 5 minutes (`supabase/migrations/20261119140000_keep_bot_awake.sql`); without it, the first
   message after a quiet spell takes about a minute while it wakes. Peak memory per answer measured at ~360 MB.
 - Or on any always-on machine: `npm start` with `BOT_MODE=polling`.
 
