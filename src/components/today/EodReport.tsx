@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { CalledRow, DayStats, DemoRow } from "@/lib/queue";
+import { isConnected, type Outcome } from "@/lib/outcomes";
 import { formatWhen } from "@/lib/time";
 
 const dateFmt = new Intl.DateTimeFormat("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
@@ -9,12 +10,14 @@ const dateFmt = new Intl.DateTimeFormat("en-IN", { weekday: "short", day: "numer
 /** The End-of-Day report, written from the day's logs. */
 export function EodReport({
   name,
+  categories = [],
   stats,
   called,
   demos,
   onClose,
 }: {
   name: string;
+  categories?: { key: string; label: string }[];
   stats: DayStats;
   called: CalledRow[];
   demos: DemoRow[];
@@ -42,6 +45,17 @@ export function EodReport({
       `Overdue: ${stats.overdue}`,
       `This week: ${stats.week_dials} dials`,
     ];
+    if (categories.length > 1 && called.length > 0) {
+      lines.push(``, `By list:`);
+      for (const c of categories) {
+        const mine = called.filter((x) => (x.category ?? "influencer") === c.key);
+        if (mine.length === 0) continue;
+        const spoke = mine.filter((x) => isConnected(x.outcome as Outcome) || x.outcome === "connected").length;
+        const decks = mine.filter((x) => x.outcome === "details_sent").length;
+        const demosN = mine.filter((x) => x.outcome === "demo_booked").length;
+        lines.push(`  ${c.label}: ${mine.length} dials, ${spoke} spoke, ${decks} decks, ${demosN} demos`);
+      }
+    }
     const upcoming = demos.filter((d) => !bookedToday.some((b) => b.lead_id === d.lead_id));
     if (upcoming.length) {
       lines.push(``, `Upcoming demos:`);
@@ -49,7 +63,7 @@ export function EodReport({
     }
     if (extra.trim()) lines.push(``, `Notes: ${extra.trim()}`);
     return lines.join("\n");
-  }, [name, stats, called, demos, extra]);
+  }, [name, stats, called, demos, extra, categories]);
 
   async function copy() {
     try {

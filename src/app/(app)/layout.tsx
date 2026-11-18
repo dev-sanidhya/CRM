@@ -12,6 +12,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const navItems: NavItem[] = [
     { href: "/today", label: "Today", icon: "today" },
     { href: "/leads", label: profile.role === "founder" ? "All leads" : "My leads", icon: "leads" },
+    { href: "/activity", label: "Activity", icon: "activity" },
     { href: "/sheets", label: "Import", icon: "import" },
     ...(profile.role === "founder" ? [{ href: "/team", label: "Team", icon: "team" } as NavItem] : []),
   ];

@@ -49,6 +49,15 @@ export async function reassignLead(leadId: string, formData: FormData) {
   revalidatePath(`/leads/${leadId}`);
 }
 
+/** Move a lead to another list (Influencer management, Partnership calls). */
+export async function changeCategory(leadId: string, formData: FormData) {
+  const category = String(formData.get("category") ?? "");
+  if (!category) return;
+  const supabase = await createClient();
+  await supabase.from("leads").update({ category }).eq("id", leadId);
+  revalidatePath(`/leads/${leadId}`);
+}
+
 /** Mark or unmark "deck / details sent" by hand (e.g. sent by email later). */
 export async function setDeckSent(leadId: string, sent: boolean) {
   const supabase = await createClient();

@@ -30,8 +30,9 @@ export default async function TeamPage() {
   const { data: callers } = await supabase.from("profiles").select("id, name").eq("role", "caller").order("name");
   const ids = (callers ?? []).map((c) => c.id);
 
-  const [statsList, { data: recent }, { data: demos }, { data: stageRows }, { count: importCount }] = await Promise.all([
+  const [statsList, catStatsList, { data: recent }, { data: demos }, { data: stageRows }, { count: importCount }] = await Promise.all([
     Promise.all(ids.map((id) => supabase.rpc("get_day_stats", { p_caller: id }))),
+    Promise.all(ids.map((id) => supabase.rpc("get_category_stats", { p_caller: id }))),
     ids.length
       ? supabase
           .from("activities")
@@ -97,6 +98,7 @@ export default async function TeamPage() {
                 <Metric label="Decks this week" value={s.week_decks ?? 0} />
                 <Metric label="Deck follow-ups open" value={s.decks_open ?? 0} />
               </dl>
+              <CategoryBreakdown data={catStatsList[i]?.data as Record<string, CategoryStat> | null} />
             </section>
           );
         })}
@@ -190,6 +192,43 @@ function Metric({ label, value, warn }: { label: string; value: number | string;
     <div className="flex flex-col-reverse">
       <dt className="text-xs text-muted">{label}</dt>
       <dd className={`text-lg font-semibold tabular-nums ${warn ? "text-lost" : "text-ink"}`}>{value}</dd>
+    </div>
+  );
+}
+
+type CategoryStat = { label: string; dials: number; connected: number; decks: number; demos: number; week_dials: number; open_leads: number };
+
+function CategoryBreakdown({ data }: { data: Record<string, CategoryStat> | null }) {
+  if (!data) return null;
+  const rows = Object.entries(data);
+  if (rows.length < 2) return null;
+  return (
+    <div className="mt-4 border-t border-line pt-3">
+      <p className="mb-1.5 text-xs font-medium text-muted">By list, today</p>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-left text-xs text-faint">
+            <th className="py-1 font-normal">List</th>
+            <th className="py-1 pl-3 text-right font-normal">Dials</th>
+            <th className="py-1 pl-3 text-right font-normal">Spoke</th>
+            <th className="py-1 pl-3 text-right font-normal">Decks</th>
+            <th className="py-1 pl-3 text-right font-normal">Demos</th>
+            <th className="py-1 pl-3 text-right font-normal">Open</th>
+          </tr>
+        </thead>
+        <tbody className="tabular-nums">
+          {rows.map(([key, r]) => (
+            <tr key={key} className="border-t border-line">
+              <td className="py-1.5 pr-1 text-ink">{r.label}</td>
+              <td className="py-1.5 pl-3 text-right">{r.dials}</td>
+              <td className="py-1.5 pl-3 text-right text-call">{r.connected}</td>
+              <td className="py-1.5 pl-3 text-right text-deck">{r.decks}</td>
+              <td className="py-1.5 pl-3 text-right text-demo">{r.demos}</td>
+              <td className="py-1.5 pl-3 text-right text-muted">{r.open_leads}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

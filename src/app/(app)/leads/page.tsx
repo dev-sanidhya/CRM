@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAndProfile } from "@/lib/profile";
 import { StagePill } from "@/components/StagePill";
 import { LeadSearch } from "@/components/LeadSearch";
+import { CategoryTabs } from "@/components/CategoryTabs";
+import { getCategories, resolveCategory } from "@/lib/categories";
 import { outcomeLabel, outcomeTone } from "@/lib/outcomes";
 import { formatAgo } from "@/lib/time";
 import type { Stage } from "@/lib/stages";
@@ -23,9 +25,15 @@ type View = (typeof VIEWS)[number]["key"];
 export default async function LeadsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string; view?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; view?: string; cat?: string }>;
 }) {
-  const [{ q = "", page: pageParam, view: viewParam }, { profile }] = await Promise.all([searchParams, getCurrentUserAndProfile()]);
+  const [{ q = "", page: pageParam, view: viewParam, cat }, { profile }, categories] = await Promise.all([
+    searchParams,
+    getCurrentUserAndProfile(),
+    getCategories(),
+  ]);
+  const category = await resolveCategory(cat, categories);
+  const catLabel = Object.fromEntries(categories.map((c) => [c.key, c.label]));
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
   const view: View = (VIEWS.find((v) => v.key === viewParam)?.key ?? "open") as View;
   const from = (page - 1) * PAGE_SIZE;
@@ -34,11 +42,12 @@ export default async function LeadsPage({
 
   let query = supabase
     .from("leads")
-    .select("id, business_name, phone, city, stage, attempt_count, last_called_at, last_outcome, last_note, details_sent_at, profiles:assigned_to(name)", {
+    .select("id, business_name, phone, city, stage, attempt_count, last_called_at, last_outcome, last_note, details_sent_at, category, profiles:assigned_to(name)", {
       count: "estimated",
     })
     .range(from, from + PAGE_SIZE - 1);
 
+  if (category !== "all") query = query.eq("category", category);
   if (view === "open") query = query.is("closed_at", null).not("stage", "in", "(won,lost)");
   if (view === "called") query = query.gt("attempt_count", 0);
   if (view === "fresh") query = query.eq("attempt_count", 0).is("closed_at", null);
@@ -71,6 +80,7 @@ export default async function LeadsPage({
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (v !== "open") params.set("view", v);
+    if (category !== "all") params.set("cat", category);
     if (p > 1) params.set("page", String(p));
     const s = params.toString();
     return s ? `?${s}` : "";
@@ -90,6 +100,9 @@ export default async function LeadsPage({
         <LeadSearch />
       </div>
 
+      <div className="mb-2">
+        <CategoryTabs categories={categories} current={category} keepParams={["view", "q"]} />
+      </div>
       <nav className="-mx-1 mb-3 flex gap-1 overflow-x-auto px-1" aria-label="Filter leads">
         {VIEWS.map((v) => (
           <Link
@@ -126,6 +139,9 @@ export default async function LeadsPage({
                   <Link href={`/leads/${lead.id}?from=${back}`} className="min-w-0 truncate font-medium text-ink hover:underline">
                     {lead.business_name}
                     {isFounder && <span className="ml-2 text-xs font-normal text-faint">{owner ?? "Unassigned"}</span>}
+                    {category === "all" && categories.length > 1 && (
+                      <span className="ml-2 rounded-md border border-line px-1.5 py-px text-[11px] font-medium text-muted">{catLabel[lead.category] ?? lead.category}</span>
+                    )}
                   </Link>
                   <span className="hidden truncate text-sm text-muted md:block">{lead.city ?? ""}</span>
                   <span className="justify-self-end md:justify-self-start">

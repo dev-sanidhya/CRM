@@ -26,7 +26,8 @@ function ResultBanner({ state }: { state: PullResult | null }) {
   );
 }
 
-export function PullForm() {
+export function PullForm({ categories, defaultCategory }: { categories: { key: string; label: string }[]; defaultCategory: string }) {
+  const [category, setCategory] = useState(defaultCategory);
   const [urlState, urlAction, urlPending] = useActionState<PullResult | null, FormData>(pullSheet, null);
   const [fileState, fileAction, filePending] = useActionState<PullResult | null, FormData>(pullFile, null);
   const [fileName, setFileName] = useState("");
@@ -45,7 +46,30 @@ export function PullForm() {
 
   return (
     <div className="space-y-4">
+      <fieldset className="rounded-2xl border border-line bg-surface p-4">
+        <legend className="sr-only">Which list are these leads for?</legend>
+        <p className="mb-2 text-sm font-medium text-ink">1. Which list are these leads for?</p>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {categories.map((c) => (
+            <button
+              key={c.key}
+              type="button"
+              role="radio"
+              aria-checked={category === c.key}
+              onClick={() => setCategory(c.key)}
+              className={`flex-1 rounded-xl px-4 py-3 text-left text-sm font-medium transition-colors ${
+                category === c.key ? "bg-ink text-white" : "border border-line text-ink hover:border-ink"
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+        {!category && <p className="mt-2 text-xs text-amber">Pick one first, so leads never land in the wrong list.</p>}
+      </fieldset>
+      <p className="-mb-2 px-1 text-sm font-medium text-ink">2. Add the sheet</p>
       <form action={urlAction} className="rounded-2xl border border-line bg-surface p-4">
+        <input type="hidden" name="category" value={category} />
         <label htmlFor="sheet-url" className="mb-2 block text-sm font-medium text-ink">
           Google Sheet link
         </label>
@@ -67,6 +91,7 @@ export function PullForm() {
       </form>
 
       <form ref={fileForm} action={fileAction}>
+        <input type="hidden" name="category" value={category} />
         <label
           onDragOver={(e) => {
             e.preventDefault();

@@ -15,6 +15,7 @@ export type QueueRow = {
   last_note: string | null;
   extra_fields: Record<string, string> | null;
   details_sent_at?: string | null;
+  category?: string;
   reminder_id: string | null;
   due_at: string | null;
   due_note: string | null;
@@ -34,6 +35,7 @@ export type CalledRow = {
   business_name: string;
   city: string | null;
   phone: string;
+  category?: string;
   /** Client-only: still saving, or failed to save. */
   pending?: boolean;
 };
@@ -51,6 +53,7 @@ export type DemoRow = {
 export type QueueData = {
   rows: QueueRow[];
   counts: { due: number; deck?: number; retry: number; new: number; later: number };
+  category_counts?: Record<string, number>;
   called: CalledRow[];
   demos: DemoRow[];
 };

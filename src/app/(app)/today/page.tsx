@@ -4,10 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAndProfile } from "@/lib/profile";
 import { TodayBoard } from "@/components/today/TodayBoard";
 import { EMPTY_STATS, NEW_PAGE, type DayStats, type QueueData } from "@/lib/queue";
+import { getCategories, resolveCategory } from "@/lib/categories";
+import { CategoryTabs } from "@/components/CategoryTabs";
 
-export default async function TodayPage({ searchParams }: { searchParams: Promise<{ caller?: string }> }) {
-  const [{ user, profile }, { caller }] = await Promise.all([getCurrentUserAndProfile(), searchParams]);
+export default async function TodayPage({ searchParams }: { searchParams: Promise<{ caller?: string; cat?: string }> }) {
+  const [{ user, profile }, { caller, cat }, categories] = await Promise.all([getCurrentUserAndProfile(), searchParams, getCategories()]);
   if (!user || !profile) redirect("/login");
+  const category = await resolveCategory(cat, categories);
 
   const supabase = await createClient();
   const isFounder = profile.role === "founder";
@@ -27,7 +30,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   }
 
   const [queue, stats] = await Promise.all([
-    supabase.rpc("get_queue", { p_caller: callerId, p_new_limit: NEW_PAGE }),
+    supabase.rpc("get_queue", { p_caller: callerId, p_new_limit: NEW_PAGE, p_category: category === "all" ? null : category }),
     supabase.rpc("get_day_stats", { p_caller: callerId }),
   ]);
 
@@ -40,7 +43,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           {callers.map((c) => (
             <Link
               key={c.id}
-              href={`/today?caller=${c.id}`}
+              href={`/today?caller=${c.id}&cat=${category}`}
               className={`rounded-lg px-3 py-1.5 text-sm font-medium ${c.id === callerId ? "bg-ink text-white" : "text-muted hover:bg-surface"}`}
             >
               {c.name}
@@ -48,13 +51,23 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           ))}
         </nav>
       )}
+      <div className="mx-auto mb-3 max-w-4xl">
+        <CategoryTabs
+          categories={categories}
+          current={category}
+          counts={(queue.data as QueueData | null)?.category_counts ?? undefined}
+          keepParams={["caller"]}
+        />
+      </div>
       {queue.error ? (
         <div className="mx-auto max-w-4xl rounded-2xl border border-lost/30 bg-lost-soft p-5 text-sm text-lost">
           Could not load today&apos;s list: {queue.error.message}
         </div>
       ) : (
         <TodayBoard
-          key={callerId}
+          key={`${callerId}-${category}`}
+          category={category}
+          categories={categories}
           initial={initial}
           initialStats={(stats.data as DayStats) ?? EMPTY_STATS}
           callerId={callerId}

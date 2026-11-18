@@ -18,6 +18,12 @@ const ICONS = {
       <path d="M13 5.2a2.6 2.6 0 0 1 0 5M15 12.3c1.2.6 2 1.8 2.3 3.7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </>
   ),
+  activity: (
+    <>
+      <circle cx="10" cy="10" r="6.75" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M10 6.5V10l2.5 1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
   import: (
     <path
       d="M10 3.5v9m0 0-3.5-3.5M10 12.5l3.5-3.5M4 14.5v1A1.5 1.5 0 0 0 5.5 17h9a1.5 1.5 0 0 0 1.5-1.5v-1"

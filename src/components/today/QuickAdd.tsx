@@ -7,16 +7,21 @@ import { normalizePhone } from "@/lib/sheets";
 /** Add one lead by hand: a referral, an inbound call, a number from WhatsApp. */
 export function QuickAdd({
   assignTo,
+  categories,
+  defaultCategory,
   onAdded,
   onClose,
 }: {
   assignTo: string;
+  categories: { key: string; label: string }[];
+  defaultCategory: string;
   onAdded: (leadId: string, existing: boolean) => void;
   onClose: () => void;
 }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
+  const [category, setCategory] = useState(defaultCategory);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -34,6 +39,7 @@ export function QuickAdd({
       p_phone: normalized,
       p_city: city.trim() || null,
       p_assign: assignTo,
+      p_category: category,
     });
     setSaving(false);
     if (rpcError) {
@@ -69,6 +75,24 @@ export function QuickAdd({
             placeholder="City (optional)"
             className="w-full rounded-xl border border-line px-3 py-2.5 text-sm outline-none placeholder:text-faint focus:border-ink"
           />
+          {categories.length > 1 && (
+            <div className="flex gap-1.5" role="radiogroup" aria-label="List">
+              {categories.map((c) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  role="radio"
+                  aria-checked={category === c.key}
+                  onClick={() => setCategory(c.key)}
+                  className={`flex-1 rounded-xl px-3 py-2 text-sm font-medium ${
+                    category === c.key ? "bg-ink text-white" : "border border-line text-muted hover:border-ink"
+                  }`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         {error && <p className="mt-2 text-sm text-lost">{error}</p>}
         <div className="mt-4 flex gap-2">

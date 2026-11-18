@@ -10,7 +10,9 @@ import { scriptLines } from "@/lib/queue";
 import { LeadCallActions } from "@/components/lead/LeadCallActions";
 import { HistoryList, type HistoryEntry } from "@/components/lead/HistoryList";
 import { AutoSubmitSelect } from "@/components/lead/AutoSubmitSelect";
-import { addNote, changeStage, completeReminder, reassignLead, setDeckSent } from "./actions";
+import { addNote, changeCategory, changeStage, completeReminder, reassignLead, setDeckSent } from "./actions";
+import { getCategories } from "@/lib/categories";
+import { VersionHistory, type Version } from "@/components/lead/VersionHistory";
 
 export default async function LeadDetailPage({
   params,
@@ -25,7 +27,7 @@ export default async function LeadDetailPage({
   const supabase = await createClient();
 
   // Everything in parallel: one round trip's worth of waiting.
-  const [{ data: lead }, { data: activities }, { data: reminders }, { data: people }] = await Promise.all([
+  const [{ data: lead }, { data: activities }, { data: reminders }, { data: people }, { data: versions }, { data: allPeople }, categories] = await Promise.all([
     supabase.from("leads").select("*").eq("id", id).maybeSingle(),
     supabase
       .from("activities")
@@ -35,6 +37,14 @@ export default async function LeadDetailPage({
       .limit(100),
     supabase.from("reminders").select("id, due_at, note, kind").eq("lead_id", id).neq("status", "done").order("due_at"),
     isFounder ? supabase.from("profiles").select("id, name").order("name") : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+    supabase
+      .from("lead_history")
+      .select("id, version, changed_at, action, source, changes, profiles:actor(name)")
+      .eq("lead_id", id)
+      .order("version", { ascending: false })
+      .limit(200),
+    supabase.from("profiles").select("id, name"),
+    getCategories(),
   ]);
 
   if (!lead) notFound();
@@ -136,6 +146,22 @@ export default async function LeadDetailPage({
             </form>
             <HistoryList leadId={id} items={history} />
           </section>
+
+          <VersionHistory
+            versions={(versions ?? []).map((v) => ({
+              id: v.id,
+              version: v.version,
+              changed_at: v.changed_at,
+              action: v.action,
+              source: v.source,
+              changes: v.changes,
+              actor: (v.profiles as unknown as { name: string } | null)?.name ?? null,
+            })) as Version[]}
+            names={{
+              ...Object.fromEntries((allPeople ?? []).map((p) => [p.id, p.name])),
+              ...Object.fromEntries(categories.map((c) => [c.key, c.label])),
+            }}
+          />
         </div>
 
         <aside className="min-w-0 space-y-4">
@@ -148,6 +174,16 @@ export default async function LeadDetailPage({
               defaultValue={lead.stage}
               options={STAGES.map((s) => ({ value: s, label: STAGE_LABELS[s] }))}
             />
+            {categories.length > 1 && (
+              <AutoSubmitSelect
+                key={`cat-${lead.category}`}
+                action={changeCategory.bind(null, id)}
+                name="category"
+                label="List"
+                defaultValue={lead.category}
+                options={categories.map((c) => ({ value: c.key, label: c.label }))}
+              />
+            )}
             <form action={setDeckSent.bind(null, id, !lead.details_sent_at)}>
               <span className="mb-1 block text-xs text-faint">Deck / details</span>
               <button

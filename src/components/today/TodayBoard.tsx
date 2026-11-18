@@ -77,12 +77,16 @@ export function TodayBoard({
   callerId,
   callerName,
   isFounder,
+  category,
+  categories,
 }: {
   initial: QueueData;
   initialStats: DayStats;
   callerId: string;
   callerName: string;
   isFounder: boolean;
+  category: string;
+  categories: { key: string; label: string }[];
 }) {
   const sb = useMemo(() => createClient(), []);
   const [rows, setRows] = useState<QueueRow[]>(initial.rows);
@@ -119,7 +123,7 @@ export function TodayBoard({
     async (limit = newLimit) => {
       const t0 = performance.now();
       const [q, s] = await Promise.all([
-        sb.rpc("get_queue", { p_caller: callerId, p_new_limit: limit }),
+        sb.rpc("get_queue", { p_caller: callerId, p_new_limit: limit, p_category: category === "all" ? null : category }),
         sb.rpc("get_day_stats", { p_caller: callerId }),
       ]);
       recordTiming("reload", performance.now() - t0);
@@ -134,7 +138,7 @@ export function TodayBoard({
       }
       if (s.data) setStats(s.data as DayStats);
     },
-    [sb, callerId, newLimit],
+    [sb, callerId, newLimit, category],
   );
 
   const scheduleReload = useCallback(() => {
@@ -520,6 +524,7 @@ export function TodayBoard({
                   <QueueItem
                     key={r.id}
                     row={r}
+                    categoryLabel={category === "all" && categories.length > 1 ? categories.find((c) => c.key === r.category)?.label : undefined}
                     selected={i === sel}
                     sod={sod}
                     now={now}
@@ -652,10 +657,12 @@ export function TodayBoard({
           onLog={() => openLog(peek)}
         />
       )}
-      {showEod && <EodReport name={callerName} stats={stats} called={called} demos={demos} onClose={() => setShowEod(false)} />}
+      {showEod && <EodReport name={callerName} categories={categories} stats={stats} called={called} demos={demos} onClose={() => setShowEod(false)} />}
       {showAdd && (
         <QuickAdd
           assignTo={callerId}
+          categories={categories}
+          defaultCategory={category === "all" ? categories[0]?.key ?? "influencer" : category}
           onClose={() => setShowAdd(false)}
           onAdded={(_id, existing) => {
             setShowAdd(false);
@@ -710,6 +717,7 @@ export function TodayBoard({
 
 function QueueItem({
   row,
+  categoryLabel,
   selected,
   now,
   sod,
@@ -720,6 +728,7 @@ function QueueItem({
   onLog,
 }: {
   row: QueueRow;
+  categoryLabel?: string;
   selected: boolean;
   now: number;
   sod: number;
@@ -744,6 +753,7 @@ function QueueItem({
         <p className="flex items-baseline gap-2">
           <span className="truncate font-medium text-ink">{row.business_name}</span>
           {row.city && <span className="hidden shrink-0 text-sm text-faint sm:inline">{row.city}</span>}
+          {categoryLabel && <span className="shrink-0 rounded-md border border-line px-1.5 py-px text-[11px] font-medium text-muted">{categoryLabel}</span>}
         </p>
         <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
           {due && (

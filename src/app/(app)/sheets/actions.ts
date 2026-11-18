@@ -36,6 +36,7 @@ async function importRows(
   rawRows: string[][],
   sourceLabel: string,
   sheetTab: string | null,
+  category: string,
 ): Promise<PullResult> {
   const filteredRows = rawRows
     .map((r) => r.map((c) => (c ?? "").toString()))
@@ -208,6 +209,7 @@ async function importRows(
     p_rows: payloadRows,
     p_sheet_url: sourceLabel,
     p_sheet_tab: sheetTab,
+    p_category: category,
   });
 
   if (error) {
@@ -231,6 +233,7 @@ async function importRows(
 export async function pullSheet(_prev: PullResult | null, formData: FormData): Promise<PullResult> {
   const url = String(formData.get("url") ?? "").trim();
   if (!url) return { ok: false, error: "Paste a sheet link first." };
+  if (!formData.get("category")) return { ok: false, error: "Choose which list these leads belong to." };
 
   let sheetId: string, gid: string | null;
   try {
@@ -250,7 +253,7 @@ export async function pullSheet(_prev: PullResult | null, formData: FormData): P
   const csvText = await res.text();
   const rawRows = Papa.parse<string[]>(csvText, { skipEmptyLines: true }).data;
 
-  return importRows(rawRows, url, gid);
+  return importRows(rawRows, url, gid, String(formData.get("category") ?? "influencer"));
 }
 
 // File-upload pull: lets anyone hand over a spreadsheet directly (.xlsx,
@@ -259,6 +262,7 @@ export async function pullSheet(_prev: PullResult | null, formData: FormData): P
 // as a URL pull, so any lead sheet someone drops in — regardless of source
 // or column layout — gets parsed the same way.
 export async function pullFile(_prev: PullResult | null, formData: FormData): Promise<PullResult> {
+  if (!formData.get("category")) return { ok: false, error: "Choose which list these leads belong to." };
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, error: "Choose a file first." };
@@ -287,7 +291,7 @@ export async function pullFile(_prev: PullResult | null, formData: FormData): Pr
     return { ok: false, error: `Couldn't read that file: ${(e as Error).message}` };
   }
 
-  return importRows(rawRows, `file:${file.name}`, null);
+  return importRows(rawRows, `file:${file.name}`, null, String(formData.get("category") ?? "influencer"));
 }
 
 export async function deleteSheetImport(importId: string) {
