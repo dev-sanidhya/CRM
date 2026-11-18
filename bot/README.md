@@ -13,7 +13,13 @@ Founders ask it anything about the CRM; it sends a daily update at 7:00 pm IST (
   to the group. Turn off privacy mode in @BotFather (/setprivacy) or make the bot a group admin so it sees @mentions.
   Commands: `/report`, `/reset`, `/help`.
 
-## Free hosting
+## Free hosting (live)
+- Render service `aperture-crm-bot` (https://aperture-crm-bot.onrender.com), webhook mode, sends the 7 pm update
+  itself (`BOT_SCHEDULER=1`); GitHub Actions `daily-update.yml` is the backup at ~19:10 IST. The "sent today" claim is
+  atomic, so it never sends twice. Sundays: a short look-ahead (follow-ups, demos, risks) instead of the day's numbers.
+- `deploy-bot.yml` redeploys Render on every push that touches `bot/`.
+
+## Free hosting (setup notes)
 - 7 pm update: GitHub Actions (`.github/workflows/daily-update.yml`), free for this public repo.
   Repo secrets: `CLAUDE_CODE_OAUTH_TOKEN`, `TELEGRAM_BOT_TOKEN`, `BOT_DB_PASSWORD`, `BOT_FOUNDERS`.
 - Chat: Render free web service (`render.yaml`, root `bot/`, `BOT_MODE=webhook`). Kept awake by a Supabase pg_cron job
