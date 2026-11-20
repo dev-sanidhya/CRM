@@ -5,8 +5,17 @@ import { broadcast, hasAudience, people } from './telegram.js';
 import { claimState, setState } from './db.js';
 import { istParts } from './time.js';
 
+// The update only ever goes out in the evening window, whoever triggers it. GitHub's scheduler can
+// start a job hours late (it once ran the 7 pm backup at 3 am); outside the window it does nothing.
+const WINDOW_START = Number(process.env.BOT_DIGEST_HOUR || 19);
+const WINDOW_END = 23;
+
 export async function sendDailyUpdate({ force = false } = {}) {
-  const day = istParts().date;
+  const now = istParts();
+  const day = now.date;
+  if (!force && (now.hour < WINDOW_START || now.hour >= WINDOW_END)) {
+    return { skipped: `outside the ${WINDOW_START}:00-${WINDOW_END}:00 IST window (now ${String(now.hour).padStart(2, '0')}:${String(now.minute).padStart(2, '0')})`, day };
+  }
   if (!(await hasAudience())) return { skipped: 'no founder has linked the bot yet', day };
   // Claim the day atomically: if Render's scheduler and the GitHub backup fire together, only one sends.
   if (!(await claimState('last_digest_day', day)) && !force) return { skipped: 'already sent today', day };
