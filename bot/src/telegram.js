@@ -1,5 +1,7 @@
 // Telegram: founders link once with their own code; the bot then knows who is who in private
 // chats and in groups. Works with long polling (always-on) or a webhook (hosts that sleep).
+import dns from 'node:dns';
+import net from 'node:net';
 import { getState, setState, saveMessage, clearMessages } from './db.js';
 import { runAgent, DIGEST_TASK } from './agent.js';
 
@@ -13,14 +15,41 @@ export const FOUNDERS = String(process.env.BOT_FOUNDERS || '')
 
 let me = null; // the bot's own Telegram user
 
-export async function tg(method, params = {}) {
+// Reaching Telegram from the host: prefer IPv4 and give each connection attempt time. Node's default
+// tries IPv6 and IPv4 with a 250 ms cut-off, which on a slow route fails with ETIMEDOUT
+// ("fetch failed"); that is what once dropped replies for a few minutes.
+dns.setDefaultResultOrder('ipv4first');
+if (typeof net.setDefaultAutoSelectFamilyAttemptTimeout === 'function') net.setDefaultAutoSelectFamilyAttemptTimeout(3000);
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Call the Telegram Bot API. Network errors, 5xx and 429 are retried with backoff (about 40 s in
+ * total by default), so a short blip does not lose a reply. Errors Telegram reports for the request
+ * itself (4xx) are not retried.
+ */
+export async function tg(method, params = {}, { retries = 5, timeoutMs = 20000 } = {}) {
   if (!TOKEN) throw new Error('TELEGRAM_BOT_TOKEN is not set');
-  const res = await fetch(`https://api.telegram.org/bot${TOKEN}/${method}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!data.ok) throw new Error(data.description || `HTTP ${res.status}`);
-  return data.result;
+  const delays = [1000, 3000, 6000, 10000, 15000];
+  for (let attempt = 0; ; attempt++) {
+    let retryAfterMs = null;
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${TOKEN}/${method}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.ok) return data.result;
+      const retryable = res.status >= 500 || res.status === 429;
+      if (!retryable || attempt >= retries) throw Object.assign(new Error(data.description || `HTTP ${res.status}`), { final: true });
+      if (data.parameters?.retry_after) retryAfterMs = data.parameters.retry_after * 1000;
+    } catch (e) {
+      if (e.final || attempt >= retries) throw e;
+    }
+    const wait = retryAfterMs ?? delays[Math.min(attempt, delays.length - 1)];
+    console.warn(`telegram ${method} failed, retry ${attempt + 1}/${retries} in ${Math.round(wait / 1000)} s`);
+    await sleep(wait);
+  }
 }
 
 async function whoAmI() {
@@ -58,7 +87,7 @@ export async function hasAudience() {
 }
 
 function typingLoop(chatId) {
-  const ping = () => tg('sendChatAction', { chat_id: chatId, action: 'typing' }).catch(() => {});
+  const ping = () => tg('sendChatAction', { chat_id: chatId, action: 'typing' }, { retries: 0, timeoutMs: 8000 }).catch(() => {});
   ping();
   const t = setInterval(ping, 4500);
   return () => clearInterval(t);
@@ -183,7 +212,7 @@ export async function startPolling() {
   let offset = Number(await getState('tg_offset', 0)) || 0;
   for (;;) {
     try {
-      const updates = await tg('getUpdates', { offset, timeout: 25, allowed_updates: ['message'] });
+      const updates = await tg('getUpdates', { offset, timeout: 25, allowed_updates: ['message'] }, { retries: 0, timeoutMs: 40000 });
       for (const u of updates) {
         offset = u.update_id + 1;
         await setState('tg_offset', offset);
