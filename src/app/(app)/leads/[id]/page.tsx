@@ -31,7 +31,7 @@ export default async function LeadDetailPage({
     supabase.from("leads").select("*").eq("id", id).maybeSingle(),
     supabase
       .from("activities")
-      .select("id, type, outcome, summary, created_at, next_at, source, to_stage, profiles:actor(name)")
+      .select("id, type, outcome, summary, created_at, next_at, source, to_stage, requested_by, profiles:actor(name)")
       .eq("lead_id", id)
       .order("created_at", { ascending: false })
       .limit(100),
@@ -39,7 +39,7 @@ export default async function LeadDetailPage({
     isFounder ? supabase.from("profiles").select("id, name").order("name") : Promise.resolve({ data: [] as { id: string; name: string }[] }),
     supabase
       .from("lead_history")
-      .select("id, version, changed_at, action, source, changes, profiles:actor(name)")
+      .select("id, version, changed_at, action, source, changes, requested_by, profiles:actor(name)")
       .eq("lead_id", id)
       .order("version", { ascending: false })
       .limit(200),
@@ -60,6 +60,7 @@ export default async function LeadDetailPage({
     created_at: a.created_at,
     next_at: a.next_at,
     source: a.source,
+    requested_by: a.requested_by,
     actor_name: (a.profiles as unknown as { name: string } | null)?.name ?? null,
   }));
 
@@ -154,6 +155,7 @@ export default async function LeadDetailPage({
               changed_at: v.changed_at,
               action: v.action,
               source: v.source,
+              requested_by: v.requested_by,
               changes: v.changes,
               actor: (v.profiles as unknown as { name: string } | null)?.name ?? null,
             })) as Version[]}

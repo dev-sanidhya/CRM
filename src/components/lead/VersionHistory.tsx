@@ -1,4 +1,4 @@
-import { describeChanges, sourceLabel, type HistoryChanges } from "@/lib/history";
+import { describeChanges, sourceLabel, telegramTag, TELEGRAM_ROW, TELEGRAM_BADGE, type HistoryChanges } from "@/lib/history";
 import { formatWhen } from "@/lib/time";
 
 export type Version = {
@@ -7,6 +7,7 @@ export type Version = {
   changed_at: string;
   action: "created" | "updated" | "baseline";
   source: string;
+  requested_by?: string | null;
   changes: HistoryChanges;
   actor: string | null;
 };
@@ -28,14 +29,16 @@ export function VersionHistory({ versions, names }: { versions: Version[]; names
               : v.action === "created"
                 ? [v.source === "edit" ? "Lead created" : `Lead created, ${sourceLabel(v.source)}`]
                 : describeChanges(v.changes, names);
+          const tg = telegramTag(v.source, v.requested_by);
           return (
-            <li key={v.id} className="flex gap-3 py-2.5">
+            <li key={v.id} className={`flex gap-3 py-2.5 ${tg ? TELEGRAM_ROW : ""}`}>
               <span className="w-9 shrink-0 pt-0.5 text-xs font-semibold tabular-nums text-muted">v{v.version}</span>
               <div className="min-w-0 flex-1">
                 <p className="text-xs text-faint">
                   {formatWhen(v.changed_at)}
-                  {v.actor ? `, ${v.actor}` : ""}
-                  {v.action === "updated" ? `, ${sourceLabel(v.source)}` : ""}
+                  {tg ? "" : v.actor ? `, ${v.actor}` : ""}
+                  {!tg && v.action === "updated" ? `, ${sourceLabel(v.source)}` : ""}
+                  {tg && <span className={`ml-2 ${TELEGRAM_BADGE}`}>{tg}</span>}
                 </p>
                 <ul className="mt-0.5 space-y-0.5 text-sm text-ink">
                   {lines.map((l, i) => (

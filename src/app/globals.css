@@ -24,6 +24,8 @@
   --lost-soft: #f9e6e3;
   --deck: #6a3fbf;
   --deck-soft: #efe9fb;
+  --bot: #0e7c86;
+  --bot-soft: #dff2f3;
 }
 
 @theme inline {
@@ -45,6 +47,8 @@
   --color-lost-soft: var(--lost-soft);
   --color-deck: var(--deck);
   --color-deck-soft: var(--deck-soft);
+  --color-bot: var(--bot);
+  --color-bot-soft: var(--bot-soft);
   --font-sans: "IBM Plex Sans Variable", ui-sans-serif, system-ui, sans-serif;
 }
 

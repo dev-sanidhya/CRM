@@ -5,7 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { outcomeLabel, outcomeTone } from "@/lib/outcomes";
 import { formatTime, formatWhen, startOfIstDay } from "@/lib/time";
-import { describeChanges, sourceLabel, type HistoryChanges } from "@/lib/history";
+import { describeChanges, sourceLabel, telegramTag, TELEGRAM_BADGE, type HistoryChanges } from "@/lib/history";
 
 export type FeedEvent = {
   id: string;
@@ -24,6 +24,7 @@ export type FeedEvent = {
   actor: string | null;
   import_label: string | null;
   import_count: number | null;
+  requested_by?: string | null;
 };
 
 export type FeedDay = {
@@ -42,10 +43,15 @@ function mergeCallChanges(events: FeedEvent[]): (FeedEvent & { extra?: HistoryCh
   const out: (FeedEvent & { extra?: HistoryChanges })[] = events.map((e) => ({ ...e }));
   const drop = new Set<string>();
   for (const v of out) {
-    if (v.kind !== "version" || v.source !== "call" || !v.lead_id) continue;
+    if (v.kind !== "version" || (v.source !== "call" && v.source !== "telegram") || !v.lead_id) continue;
     const t = new Date(v.at).getTime();
+    // A call's changes join the call; a Telegram change joins the note the bot wrote with it.
     const call = out.find(
-      (c) => c.kind === "activity" && c.type === "call" && c.lead_id === v.lead_id && Math.abs(new Date(c.at).getTime() - t) < 10_000,
+      (c) =>
+        c.kind === "activity" &&
+        (v.source === "call" ? c.type === "call" : c.source === "telegram") &&
+        c.lead_id === v.lead_id &&
+        Math.abs(new Date(c.at).getTime() - t) < 10_000,
     );
     if (call) {
       call.extra = { ...(call.extra ?? {}), ...(v.changes ?? {}) };
@@ -261,7 +267,7 @@ function EventRow({
       badge = { text: "Added", cls: "bg-call-soft text-call" };
       detail = [e.source === "edit" ? "New lead" : sourceLabel(e.source)];
     } else {
-      badge = { text: e.source === "call" ? "Updated by call" : "Edited", cls: "bg-sunken text-muted" };
+      badge = { text: e.source === "call" ? "Updated by call" : e.source === "telegram" ? "Telegram" : "Edited", cls: e.source === "telegram" ? "bg-bot-soft text-bot" : "bg-sunken text-muted" };
       detail = describeChanges(e.changes, names);
     }
   } else if (e.type === "call") {
@@ -271,14 +277,18 @@ function EventRow({
     if (e.next_at) detail.push(`Next: ${formatWhen(e.next_at)}`);
     if (e.extra) detail.push(...describeChanges(e.extra, names));
   } else {
-    badge = { text: e.type === "note" ? "Note" : e.type, cls: "bg-sunken text-ink" };
+    badge = e.source === "telegram"
+      ? { text: "Telegram", cls: "bg-bot-soft text-bot" }
+      : { text: e.type === "note" ? "Note" : e.type, cls: "bg-sunken text-ink" };
     if (e.summary) detail.push(e.summary);
+    if (e.extra) detail.push(...describeChanges(e.extra, names));
   }
 
+  const tg = telegramTag(e.source, e.requested_by);
   const title = e.kind === "import" ? "Leads imported" : e.business_name ?? "Deleted lead";
 
   return (
-    <li className="flex gap-3 border-b border-line px-4 py-2.5 last:border-0">
+    <li className={`flex gap-3 border-b border-line px-4 py-2.5 last:border-0 ${tg ? "border-l-2 border-l-bot bg-bot-soft/40" : ""}`}>
       <span className="w-[4.5rem] shrink-0 pt-0.5 text-sm tabular-nums text-faint">{formatTime(e.at)}</span>
       <div className="min-w-0 flex-1">
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -296,7 +306,11 @@ function EventRow({
           <p className="mt-0.5 text-sm text-muted">{detail.join(". ")}</p>
         )}
       </div>
-      {e.actor && <span className="hidden shrink-0 pt-0.5 text-xs text-faint sm:block">{e.actor}</span>}
+      {tg ? (
+        <span className={`hidden shrink-0 self-start sm:block ${TELEGRAM_BADGE}`}>{e.requested_by ? `asked by ${e.requested_by}` : "via bot"}</span>
+      ) : (
+        e.actor && <span className="hidden shrink-0 pt-0.5 text-xs text-faint sm:block">{e.actor}</span>
+      )}
     </li>
   );
 }

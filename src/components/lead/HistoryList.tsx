@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { outcomeLabel, outcomeTone } from "@/lib/outcomes";
 import { formatWhen } from "@/lib/time";
+import { telegramTag, TELEGRAM_ROW, TELEGRAM_BADGE } from "@/lib/history";
 import { deleteNote } from "@/app/(app)/leads/[id]/actions";
 
 export type HistoryEntry = {
@@ -15,6 +16,7 @@ export type HistoryEntry = {
   created_at: string;
   next_at: string | null;
   source: string;
+  requested_by?: string | null;
   actor_name: string | null;
 };
 
@@ -48,13 +50,14 @@ export function HistoryList({ leadId, items }: { leadId: string; items: HistoryE
       {shown.map((a) => {
         const tone = outcomeTone(a.outcome);
         const label = a.outcome ? outcomeLabel(a.outcome) : TYPE_LABELS[a.type] ?? a.type;
+        const tg = telegramTag(a.source, a.requested_by);
         return (
-          <li key={a.id} className="group flex gap-3 py-3">
+          <li key={a.id} className={`group flex gap-3 py-3 ${tg ? TELEGRAM_ROW : ""}`}>
             <span className="w-24 shrink-0 pt-0.5 text-xs tabular-nums text-faint">{formatWhen(a.created_at)}</span>
             <div className="min-w-0 flex-1">
               <p className="flex flex-wrap items-center gap-x-2 text-xs text-faint">
                 <span className={`rounded-md px-1.5 py-0.5 font-medium ${a.outcome ? tone.soft : "bg-sunken text-muted"}`}>{label}</span>
-                {a.actor_name}
+                {tg ? <span className={TELEGRAM_BADGE}>{tg}</span> : a.actor_name}
                 {a.source === "voice" && <span>voice</span>}
                 {a.next_at && <span className="text-amber">next {formatWhen(a.next_at)}</span>}
               </p>

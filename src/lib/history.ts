@@ -24,7 +24,18 @@ const SOURCE_LABELS: Record<string, string> = {
   import: "from a sheet import",
   added_by_hand: "added by hand",
   edit: "edited",
+  telegram: "via Telegram",
 };
+
+/** "Telegram, asked by Sanidhya" for changes the founders made through the Telegram bot. */
+export function telegramTag(source: string | null | undefined, requestedBy: string | null | undefined): string | null {
+  if (source !== "telegram") return null;
+  return requestedBy ? `Telegram, asked by ${requestedBy}` : "Telegram";
+}
+
+/** Teal tint for rows the founders changed through Telegram. */
+export const TELEGRAM_ROW = "border-l-2 border-bot bg-bot-soft/40 pl-2";
+export const TELEGRAM_BADGE = "rounded-md bg-bot-soft px-1.5 py-0.5 text-xs font-medium text-bot";
 
 export function sourceLabel(source: string | null | undefined): string {
   return SOURCE_LABELS[source ?? ""] ?? source ?? "";
