@@ -280,7 +280,8 @@ function EventRow({
     badge = e.source === "telegram"
       ? { text: "Telegram", cls: "bg-bot-soft text-bot" }
       : { text: e.type === "note" ? "Note" : e.type, cls: "bg-sunken text-ink" };
-    if (e.summary) detail.push(e.summary);
+    // A stage change merged with its version reads better as "Stage: New to Interested".
+    if (e.summary && !(e.type === "status_change" && e.extra)) detail.push(e.summary);
     if (e.extra) detail.push(...describeChanges(e.extra, names));
   }
 
