@@ -179,11 +179,16 @@ export async function handleUpdate(update) {
   const replyTo = inGroup ? msg.message_id : null;
 
   // Voice notes: Claude cannot hear audio, so turn them into text first (Whisper on Cloudflare).
-  const voice = cmd ? null : voiceOf(msg);
+  // Either this message is a voice note, or it is a text reply to a voice note ("listen to this").
+  const ownVoice = cmd ? null : voiceOf(msg);
+  const quoted = msg.reply_to_message;
+  const quotedVoice = !ownVoice && quoted && !quoted.from?.is_bot ? voiceOf(quoted) : null;
+  const voice = ownVoice || quotedVoice;
+  // In a group a voice note can't @mention me: answer it if it replies to me or says my name.
+  // A text reply to a voice note is answered on the usual rules (mention or reply to me).
+  const mayAnswer = !inGroup || repliedToMe || mentioned;
   let heard = null;
-  if (voice) {
-    // In a group, a voice note can't @mention me: answer it if it replies to me or says my name.
-    const mayAnswer = !inGroup || repliedToMe || mentioned;
+  if (voice && (ownVoice || mayAnswer)) {
     if (!voiceEnabled()) return mayAnswer ? send(chat.id, "Sorry Sir, I can't listen to voice notes yet. Please type it for now.", replyTo) : null;
     if (voice.seconds > MAX_VOICE_SECONDS) return mayAnswer ? send(chat.id, 'That voice note is too long for me, Sir. Please keep it under 10 minutes.', replyTo) : null;
     const stopRec = mayAnswer ? typingLoop(chat.id) : () => {};
@@ -202,7 +207,14 @@ export async function handleUpdate(update) {
   // In a group, only answer when spoken to: a mention, a reply to me, a command, or a voice note for me.
   if (inGroup && !mentioned && !repliedToMe && !heard && cmd !== 'report' && cmd !== 'ask') return;
 
-  const text = heard ?? (cmd === 'ask' ? arg : raw).replace(new RegExp(`@${bot.username}`, 'ig'), '').trim();
+  const typed = (cmd === 'ask' ? arg : raw).replace(new RegExp(`@${bot.username}`, 'ig'), '').trim();
+  let text = typed;
+  if (heard && quotedVoice) {
+    const from = (await personFor(quoted.from?.id))?.name || quoted.from?.first_name || 'someone';
+    text = `${typed || 'Listen to this voice note and act on it.'}\n[Voice note from ${from}, transcribed]: ${heard}`;
+  } else if (heard) {
+    text = typed ? `${typed}\n[Voice note, transcribed]: ${heard}` : heard;
+  }
   if (cmd !== 'report' && !text) return send(chat.id, 'Yes Sir? Ask me anything about the CRM.', replyTo);
 
   if (busy.get(chat.id)) return send(chat.id, 'Still working on the last question, one moment.', inGroup ? msg.message_id : null);
@@ -214,7 +226,7 @@ export async function handleUpdate(update) {
     const everyone = (await people()).map((p) => p.name);
     const out = await runAgent(isReport
       ? { task: DIGEST_TASK, speaker: person.name, inGroup, everyone }
-      : { task: `Answer ${person.name}'s latest message. Use the CRM tools; your final text is sent to the chat on Telegram.${heard ? ' That message was a voice note, transcribed automatically: company names may be misspelt or split (e.g. "story biz" for StoryBizz), so match leads loosely, and if you are unsure what was said or which lead is meant, ask before changing anything.' : ''}`, chatId: chat.id, speaker: person.name, inGroup, everyone });
+      : { task: `Answer ${person.name}'s latest message. Use the CRM tools; your final text is sent to the chat on Telegram.${heard ? ' It includes a voice note that was transcribed automatically for you (you do get voice notes as text now): company names may be misspelt or split (e.g. "story biz" for StoryBizz), so match leads loosely, and if you are unsure what was said or which lead is meant, ask before changing anything.' : ''}`, chatId: chat.id, speaker: person.name, inGroup, everyone });
     stop();
     const reply = heard ? `Heard: "${heard.length > 300 ? `${heard.slice(0, 300)}...` : heard}"\n\n${out.text}` : out.text;
     await send(chat.id, reply, replyTo);
