@@ -4,6 +4,7 @@ import dns from 'node:dns';
 import net from 'node:net';
 import { getState, setState, saveMessage, clearMessages } from './db.js';
 import { runAgent, DIGEST_TASK } from './agent.js';
+import { voiceOf, voiceEnabled, transcribe, MAX_VOICE_SECONDS } from './voice.js';
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 
@@ -93,7 +94,7 @@ function typingLoop(chatId) {
   return () => clearInterval(t);
 }
 
-const help = (username, inGroup) => `I'm Jas, the Aperture CRM analyst. ${inGroup ? `In this group, mention me (@${username}) or reply to one of my messages.` : 'Just ask.'} For example:
+const help = (username, inGroup) => `I'm Jas, the Aperture CRM analyst. ${inGroup ? `In this group, mention me (@${username}) or reply to one of my messages. Voice notes work too: reply to me or say "Jas".` : 'Just ask, by text or voice note.'} For example:
 - How did today go?
 - Who are the hottest leads right now?
 - What happened with StoryBizz?
@@ -173,26 +174,50 @@ export async function handleUpdate(update) {
   if (cmd === 'help') return send(chat.id, help(bot.username, inGroup));
   if (cmd === 'reset') { await clearMessages(chat.id); return send(chat.id, 'Done, Boss. Starting fresh in this chat.'); }
 
-  // In a group, only answer when spoken to: a mention, a reply to me, or a command.
   const mentioned = raw.toLowerCase().includes(`@${bot.username.toLowerCase()}`);
   const repliedToMe = msg.reply_to_message?.from?.id === bot.id;
-  if (inGroup && !mentioned && !repliedToMe && cmd !== 'report' && cmd !== 'ask') return;
+  const replyTo = inGroup ? msg.message_id : null;
 
-  const text = (cmd === 'ask' ? arg : raw).replace(new RegExp(`@${bot.username}`, 'ig'), '').trim();
-  if (cmd !== 'report' && !text) return send(chat.id, 'Yes Sir? Ask me anything about the CRM.', inGroup ? msg.message_id : null);
+  // Voice notes: Claude cannot hear audio, so turn them into text first (Whisper on Cloudflare).
+  const voice = cmd ? null : voiceOf(msg);
+  let heard = null;
+  if (voice) {
+    // In a group, a voice note can't @mention me: answer it if it replies to me or says my name.
+    const mayAnswer = !inGroup || repliedToMe || mentioned;
+    if (!voiceEnabled()) return mayAnswer ? send(chat.id, "Sorry Sir, I can't listen to voice notes yet. Please type it for now.", replyTo) : null;
+    if (voice.seconds > MAX_VOICE_SECONDS) return mayAnswer ? send(chat.id, 'That voice note is too long for me, Sir. Please keep it under 10 minutes.', replyTo) : null;
+    const stopRec = mayAnswer ? typingLoop(chat.id) : () => {};
+    try {
+      heard = await transcribe(voice);
+    } catch (e) {
+      stopRec();
+      console.error('voice failed', e.message);
+      return mayAnswer ? send(chat.id, "Sorry Sir, I couldn't process that voice note. Please try again or type it.", replyTo) : null;
+    }
+    stopRec();
+    if (!heard) return mayAnswer ? send(chat.id, "Sorry Sir, I couldn't make out anything in that voice note.", replyTo) : null;
+    if (!mayAnswer && !/\b(jas|jaz|jazz|jass|bot)\b/i.test(heard)) return;
+  }
+
+  // In a group, only answer when spoken to: a mention, a reply to me, a command, or a voice note for me.
+  if (inGroup && !mentioned && !repliedToMe && !heard && cmd !== 'report' && cmd !== 'ask') return;
+
+  const text = heard ?? (cmd === 'ask' ? arg : raw).replace(new RegExp(`@${bot.username}`, 'ig'), '').trim();
+  if (cmd !== 'report' && !text) return send(chat.id, 'Yes Sir? Ask me anything about the CRM.', replyTo);
 
   if (busy.get(chat.id)) return send(chat.id, 'Still working on the last question, one moment.', inGroup ? msg.message_id : null);
   busy.set(chat.id, true);
   const stop = typingLoop(chat.id);
   try {
     const isReport = cmd === 'report';
-    if (!isReport) await saveMessage(chat.id, 'user', `[${person.name}] ${text}`);
+    if (!isReport) await saveMessage(chat.id, 'user', `[${person.name}]${heard ? ' (voice note)' : ''} ${text}`);
     const everyone = (await people()).map((p) => p.name);
     const out = await runAgent(isReport
       ? { task: DIGEST_TASK, speaker: person.name, inGroup, everyone }
-      : { task: `Answer ${person.name}'s latest message. Use the CRM tools; your final text is sent to the chat on Telegram.`, chatId: chat.id, speaker: person.name, inGroup, everyone });
+      : { task: `Answer ${person.name}'s latest message. Use the CRM tools; your final text is sent to the chat on Telegram.${heard ? ' That message was a voice note, transcribed automatically: company names may be misspelt or split (e.g. "story biz" for StoryBizz), so match leads loosely, and if you are unsure what was said or which lead is meant, ask before changing anything.' : ''}`, chatId: chat.id, speaker: person.name, inGroup, everyone });
     stop();
-    await send(chat.id, out.text, inGroup ? msg.message_id : null);
+    const reply = heard ? `Heard: "${heard.length > 300 ? `${heard.slice(0, 300)}...` : heard}"\n\n${out.text}` : out.text;
+    await send(chat.id, reply, replyTo);
     await saveMessage(chat.id, 'assistant', out.text);
     console.log(`answered ${person.name} in ${inGroup ? 'group' : 'private'} in ${out.ms} ms`);
   } catch (e) {
