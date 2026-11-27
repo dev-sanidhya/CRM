@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { query, createSdkMcpServer } from '@anthropic-ai/claude-agent-sdk';
 import { crmTools } from './tools.js';
 import { writeTools } from './writeTools.js';
+import { calendarTools, calendarEnabled } from './calendarTools.js';
 import { clockBlock } from './time.js';
 import { sql, recentMessages } from './db.js';
 
@@ -36,7 +37,9 @@ export const plain = (t) => String(t || '')
 
 export async function runAgent({ task, chatId = null, speaker = null, inGroup = false, everyone = [] }) {
   // Write tools only when a founder is speaking (never for the automatic daily update).
-  const tools = speaker ? [...crmTools(), ...writeTools(speaker)] : crmTools();
+  const tools = speaker
+    ? [...crmTools(), ...writeTools(speaker), ...(calendarEnabled() ? calendarTools() : [])]
+    : crmTools();
   const server = createSdkMcpServer({ name: 'crm', version: '1.0.0', tools });
   const system = [AGENT_MD, '\n\n', clockBlock(), '\n\n', await peopleBlock(),
     conversationBlock({ speaker, inGroup, everyone })].join('');
