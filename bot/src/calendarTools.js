@@ -111,7 +111,7 @@ export function calendarTools() {
           if (l.last_note) lines.push(`Last call note: ${l.last_note}`);
           lines.push(`CRM: https://aperturecrm.vercel.app/leads/${a.lead_id}`);
         }
-        lines.push('', 'Booked by Jas (Aperture CRM bot) on Telegram.');
+        lines.push('', 'Booked by Jas');
         const body = {
           summary: a.title,
           description: lines.join('\n').trim(),
